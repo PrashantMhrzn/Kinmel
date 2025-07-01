@@ -1,7 +1,7 @@
 from django.db import models as m
 from django.contrib.auth.models import AbstractUser
 
-
+# Custom user for Role based use
 class User(AbstractUser):
     ROLE_CHOICES = (
         ('admin', 'Admin'),
@@ -27,7 +27,9 @@ class Product(m.Model):
     name = m.CharField(max_length=100)
     description = m.TextField()
     price = m.DecimalField(max_digits=10, decimal_places=2)
+    # If category is deleted we still want the Product to show
     category = m.ForeignKey(Category, on_delete=m.SET_NULL, null=True)
+    # Only users with seller role are able to be displayed as a seller for the product
     seller = m.ForeignKey(User, on_delete=m.CASCADE, limit_choices_to={'role': 'seller'})
     posted_at = m.DateTimeField(auto_now_add=True)
 
@@ -63,7 +65,6 @@ class Order(m.Model):
         ('delivered', 'Delivered'),
         ('cancelled', 'Cancelled'),
     )
-    # Only customer can make a order
     customer = m.ForeignKey(User, limit_choices_to={'role': 'customer'}, on_delete=m.CASCADE)
     total_price = m.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     status = m.CharField(choices=STATUS_CHOICES, default='pending')
