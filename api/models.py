@@ -15,7 +15,7 @@ class User(AbstractUser):
 
 class SellerProfile(m.Model):
     # One user(who is a seller) can only have one Seller Profile
-    user = m.OneToOneField(User, on_delete=m.CASCADE)
+    user = m.OneToOneField(User, on_delete=m.CASCADE, limit_choices_to={'role': 'seller'})
     company_name = m.CharField(max_length=100)
     verified = m.BooleanField(default=False)
 
