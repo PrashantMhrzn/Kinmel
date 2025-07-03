@@ -31,6 +31,7 @@ class UserAdmin(UA):
     )
     search_fields = ('email', 'username')
     ordering = ('username',)
+    list_per_page = 15
 
 admin.site.register(User, UserAdmin)
 
@@ -38,8 +39,50 @@ class SellerProfileAdmin(admin.ModelAdmin):
     search_fields = ('user__username', 'company_name', 'verified')
     list_display = ('user', 'company_name', 'verified')
     list_filter = ('user__username', 'verified')
+    list_per_page = 15
+    list_editable = ('verified',)
+
 
 admin.site.register(SellerProfile, SellerProfileAdmin)
+
+class CategoryAdmin(admin.ModelAdmin):
+    search_fields = ('name',)
+    list_display = ('name',)
+    list_filter = ('name',)
+    list_per_page = 15
+
+
+admin.site.register(Category, CategoryAdmin)
+
+class ProductAdmin(admin.ModelAdmin):
+    search_fields = ('name', 'price', 'seller__username')
+    list_display = ('name','price', 'seller__username')
+    list_filter = ('name','price', 'seller__username')
+    list_per_page = 15
+
+admin.site.register(Product, ProductAdmin)
+
+class SellerInventoryAdmin(admin.ModelAdmin):
+    search_fields = ('seller__username', 'product__name')
+    list_display = ('seller__username', 'product__name', 'stock_quantity')
+    list_filter = ('seller__username', 'product__name')
+    list_per_page = 15
+
+admin.site.register(SellerInventory, SellerInventoryAdmin)
+
+class CartAdmin(admin.ModelAdmin):
+    search_fields = ('user__username', 'user__phone')
+    list_display = ('user', 'user__phone')
+    list_filter = ('user__username',)
+    list_per_page = 15
+
+admin.site.register(Cart, CartAdmin)
+
+
+
+
+
+
 
 
 
