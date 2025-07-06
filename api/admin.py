@@ -78,11 +78,35 @@ class CartAdmin(admin.ModelAdmin):
 
 admin.site.register(Cart, CartAdmin)
 
+class CartItemAdmin(admin.ModelAdmin):
+    search_fields = ('cart__user__username', 'product__name')
+    list_display = ('cart', 'product__name')
+    list_filter = ('cart__user__username', 'product__name')
+    list_per_page = 15
 
+admin.site.register(CartItem, CartItemAdmin)
 
+class OrderAdmin(admin.ModelAdmin):
+    search_fields = ('customer__username', 'status')
+    list_display = ('customer__username', 'status')
+    list_filter = ('customer__username', 'status')
+    list_per_page = 15
 
+admin.site.register(Order, OrderAdmin)
 
+class OrderItemAdmin(admin.ModelAdmin):
+    search_fields = ('order', 'product__name')
+    list_display = ('order__customer__username', 'product__name')
+    list_filter = ('order__customer__username', 'product__name')
+    list_per_page = 15
 
+admin.site.register(OrderItem, OrderItemAdmin)
 
+class DeliveryAdmin(admin.ModelAdmin):
+    search_fields = ('order__customer__username', 'delivery_person', 'status')
+    list_display = ('order__customer__username', 'delivery_person', 'status')
+    list_filter = ('order__customer__username', 'delivery_person', 'status')
+    list_per_page = 15
 
+admin.site.register(Delivery, DeliveryAdmin)
 

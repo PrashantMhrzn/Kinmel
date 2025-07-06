@@ -36,6 +36,9 @@ class Product(m.Model):
     seller = m.ForeignKey(User, on_delete=m.CASCADE, limit_choices_to={'role': 'seller'})
     posted_at = m.DateTimeField(auto_now_add=True)
 
+    def __str__(self):
+        return self.name
+
 class SellerInventory(m.Model):
     seller = m.OneToOneField(User, on_delete=m.CASCADE, limit_choices_to={'role': 'seller'})
     product = m.ForeignKey(Product, on_delete=m.CASCADE)
@@ -50,8 +53,11 @@ class Cart(m.Model):
     # Ideal for updated_at or last_modified fields.
     updated_at = m.DateTimeField(auto_now=True)
 
+    def __str__(self):
+        return self.user.username
+
 # Each item in a cart
-class CartItems(m.Model):
+class CartItem(m.Model):
     cart = m.ForeignKey(Cart, on_delete=m.CASCADE, related_name='cart_items')
     product = m.ForeignKey(Product, on_delete=m.CASCADE)
     quantity = m.PositiveIntegerField(default=1)
