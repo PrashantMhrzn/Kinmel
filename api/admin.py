@@ -110,3 +110,8 @@ class DeliveryAdmin(admin.ModelAdmin):
 
 admin.site.register(Delivery, DeliveryAdmin)
 
+class NotificationAdmin(admin.ModelAdmin):
+    search_fields = ('user__username', 'seen', 'created_at')
+    list_display = ('user__username', 'seen', 'created_at')
+    list_filter = ('user__username', 'seen', 'created_at')
+    list_per_page = 15
