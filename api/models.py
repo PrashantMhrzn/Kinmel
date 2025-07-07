@@ -52,19 +52,42 @@ class Cart(m.Model):
     # auto_now=True: Updates the timestamp every time the object is saved. 
     # Ideal for updated_at or last_modified fields.
     updated_at = m.DateTimeField(auto_now=True)
+    total_price = m.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+
+    def update_total_price(self):
+        total = 0
+        for item in self.cart_items.all():
+            if item.product and item.quantity:
+                total += item.product.price * item.quantity
+                
+        self.total_price = total
+        self.save(update_fields=['total_price'])
 
     def __str__(self):
         return self.user.username
 
 # Each item in a cart
 class CartItem(m.Model):
-    cart = m.ForeignKey(Cart, on_delete=m.CASCADE, related_name='cart_items')
+    # Referring to the Model by its string name so that we can have circular reference for total price
+    cart = m.ForeignKey('Cart', on_delete=m.CASCADE, related_name='cart_items')
     product = m.ForeignKey(Product, on_delete=m.CASCADE)
     quantity = m.PositiveIntegerField(default=1)
 
+    # Modifying the save function so that when a item is saved, it also updates the cart's total price
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        self.cart.update_total_price()
+
+    # Before deleting an item, save reference and updated cart total afterwards
+    def delete(self, *args, **kwargs):
+        cart = self.cart
+        super().delete(*args, **kwargs)
+        cart.update_total_price()
+    
     # To stop duplicate items in the same cart
     class Meta:
         unique_together = ('cart', 'product')
+
 
 class Order(m.Model):
     STATUS_CHOICES = (
@@ -81,7 +104,7 @@ class Order(m.Model):
     updated_at = m.DateTimeField(auto_now=True)
 
 class OrderItem(m.Model):
-    order = m.ForeignKey(Order, on_delete=m.CASCADE, related_name='items')
+    order = m.ForeignKey(Order, on_delete=m.CASCADE, related_name='Oitems')
     product = m.ForeignKey(Product, on_delete=m.CASCADE)
     quantity = m.PositiveIntegerField()
     purchase_price = m.DecimalField(max_digits=10, decimal_places=2)

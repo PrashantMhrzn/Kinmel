@@ -9,9 +9,6 @@ admin.site.site_title = "Kinmel"
 admin.site.index_title = "Welcome to Kinmel Admin Page"
 # since we have created a custom user, we have to register it using the UserAdmin class to have
 # all the default values for Abstract User
-# search_fields = ('title',)
-# list_display = ('id', 'title')
-# list_filter = ('name',)
 class UserAdmin(UA):
     add_form = CustomUserCreationForm
     form = CustomUserChangeForm
@@ -42,7 +39,6 @@ class SellerProfileAdmin(admin.ModelAdmin):
     list_per_page = 15
     list_editable = ('verified',)
 
-
 admin.site.register(SellerProfile, SellerProfileAdmin)
 
 class CategoryAdmin(admin.ModelAdmin):
@@ -50,7 +46,6 @@ class CategoryAdmin(admin.ModelAdmin):
     list_display = ('name',)
     list_filter = ('name',)
     list_per_page = 15
-
 
 admin.site.register(Category, CategoryAdmin)
 
@@ -70,11 +65,16 @@ class SellerInventoryAdmin(admin.ModelAdmin):
 
 admin.site.register(SellerInventory, SellerInventoryAdmin)
 
+class CartItemInline(admin.TabularInline):
+    model = CartItem
+    extra = 1 # blank forms to show
+
 class CartAdmin(admin.ModelAdmin):
     search_fields = ('user__username', 'user__phone')
-    list_display = ('user', 'user__phone')
+    list_display = ('user', 'user__phone', 'total_price')
     list_filter = ('user__username',)
     list_per_page = 15
+    inlines = [CartItemInline]
 
 admin.site.register(Cart, CartAdmin)
 
@@ -86,11 +86,16 @@ class CartItemAdmin(admin.ModelAdmin):
 
 admin.site.register(CartItem, CartItemAdmin)
 
+class OrderItemInline(admin.TabularInline):
+    model = OrderItem
+    extra = 1 # blank forms to show
+
 class OrderAdmin(admin.ModelAdmin):
     search_fields = ('customer__username', 'status')
     list_display = ('customer__username', 'status')
     list_filter = ('customer__username', 'status')
     list_per_page = 15
+    inlines = [OrderItemInline]
 
 admin.site.register(Order, OrderAdmin)
 
@@ -115,3 +120,5 @@ class NotificationAdmin(admin.ModelAdmin):
     list_display = ('user__username', 'seen', 'created_at')
     list_filter = ('user__username', 'seen', 'created_at')
     list_per_page = 15
+
+admin.site.register(Notification, NotificationAdmin)
