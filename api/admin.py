@@ -86,6 +86,7 @@ class CartItemAdmin(admin.ModelAdmin):
 
 admin.site.register(CartItem, CartItemAdmin)
 
+# Inline class for order
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
     extra = 1 # blank forms to show

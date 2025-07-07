@@ -103,11 +103,17 @@ class Order(m.Model):
     created_at = m.DateTimeField(auto_now_add=True)
     updated_at = m.DateTimeField(auto_now=True)
 
+    def __str__(self):
+        return f"Order #{self.pk} by {self.customer.username}"
+
 class OrderItem(m.Model):
     order = m.ForeignKey(Order, on_delete=m.CASCADE, related_name='Oitems')
     product = m.ForeignKey(Product, on_delete=m.CASCADE)
     quantity = m.PositiveIntegerField()
     purchase_price = m.DecimalField(max_digits=10, decimal_places=2)
+
+    def __str__(self):
+        return f"{self.quantity} x {self.product.name} in Order #{self.order.id}"
 
 class Delivery(m.Model):
     # One order can only be delivered once
