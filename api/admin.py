@@ -30,7 +30,12 @@ class UserAdmin(UA):
     ordering = ('username',)
     list_per_page = 15
 
+
 admin.site.register(User, UserAdmin)
+
+class SellerInventoryInline(admin.TabularInline):
+    model = SellerInventory
+    extra = 1
 
 class SellerProfileAdmin(admin.ModelAdmin):
     search_fields = ('user__username', 'company_name', 'verified')
@@ -38,6 +43,7 @@ class SellerProfileAdmin(admin.ModelAdmin):
     list_filter = ('user__username', 'verified')
     list_per_page = 15
     list_editable = ('verified',)
+    inlines = [SellerInventoryInline]
 
 admin.site.register(SellerProfile, SellerProfileAdmin)
 
@@ -56,6 +62,7 @@ class ProductAdmin(admin.ModelAdmin):
     list_per_page = 15
 
 admin.site.register(Product, ProductAdmin)
+
 
 class SellerInventoryAdmin(admin.ModelAdmin):
     search_fields = ('seller__username', 'product__name')

@@ -19,6 +19,9 @@ class SellerProfile(m.Model):
     company_name = m.CharField(max_length=100)
     verified = m.BooleanField(default=False)
 
+    def __str__(self):
+        return self.user.username
+
 class Category(m.Model):
     name = m.CharField(max_length=100, unique=True)
     description = m.TextField(blank=True)
@@ -41,8 +44,12 @@ class Product(m.Model):
 
 class SellerInventory(m.Model):
     seller = m.OneToOneField(User, on_delete=m.CASCADE, limit_choices_to={'role': 'seller'})
+    profile = m.OneToOneField(SellerProfile, on_delete=m.CASCADE, null=True, blank=True)
     product = m.ForeignKey(Product, on_delete=m.CASCADE)
     stock_quantity = m.PositiveIntegerField()
+
+    def __str__(self):
+        return self.seller.username
 
 class Cart(m.Model):
     user = m.OneToOneField(User, on_delete=m.CASCADE, limit_choices_to={'role': 'customer'})
