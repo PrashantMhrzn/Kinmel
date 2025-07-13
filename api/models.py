@@ -61,6 +61,8 @@ class Cart(m.Model):
     updated_at = m.DateTimeField(auto_now=True)
     total_price = m.DecimalField(max_digits=10, decimal_places=2, default=0.0)
 
+    # Each time an item is added to this cart, we take its price and add it to the total 
+    # so that we have a total price of all items in the cart
     def update_total_price(self):
         total = 0
         for item in self.cart_items.all():
@@ -69,18 +71,55 @@ class Cart(m.Model):
                 
         self.total_price = total
         self.save(update_fields=['total_price'])
+        
+    def checkout(self):
+        # We import order and orderitem here because we need it for the checkout funtion
+        # We cannot import it at the top because those models haven't been declared yet
+        # This method only runs when called and not on load so by then all models are loaded
+        from .models import Order, OrderItem 
+
+        if self.items.count() == 0:
+            raise ValueError("Cart is empty.")
+
+        order = Order.objects.create(
+            customer=self.customer,
+            status='pending',
+            total_price=0.0
+        )
+
+        total = 0
+        for item in self.cart_items.all():
+            subtotal = item.product.price * item.quantity
+            OrderItem.objects.create(
+                order = order,
+                product = item.product,
+                quantity = item.quantity,
+                purchase_price = item.product.price
+            )
+            total += subtotal
+
+        order.total_price = total
+        order.save()
+
+        self.items.all().delete()
+        self.total_price = 0
+        self.save()
+
+        return order
 
     def __str__(self):
         return self.user.username
 
 # Each item in a cart
 class CartItem(m.Model):
-    # Referring to the Model by its string name so that we can have circular reference for total price
+    # Referring to the Model by its string name so that we can have circular reference for 
+    # total price
     cart = m.ForeignKey('Cart', on_delete=m.CASCADE, related_name='cart_items')
     product = m.ForeignKey(Product, on_delete=m.CASCADE)
     quantity = m.PositiveIntegerField(default=1)
 
-    # Modifying the save function so that when a item is saved, it also updates the cart's total price
+    # Modifying the save function so that when a item is saved, it also updates the cart's 
+    # total price
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
         self.cart.update_total_price()

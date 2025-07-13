@@ -35,7 +35,8 @@ admin.site.register(User, UserAdmin)
 
 class SellerInventoryInline(admin.TabularInline):
     model = SellerInventory
-    extra = 1
+    extra = 3
+    max_num = 50
 
 class SellerProfileAdmin(admin.ModelAdmin):
     search_fields = ('user__username', 'company_name', 'verified')
@@ -44,6 +45,7 @@ class SellerProfileAdmin(admin.ModelAdmin):
     list_per_page = 15
     list_editable = ('verified',)
     inlines = [SellerInventoryInline]
+
 
 admin.site.register(SellerProfile, SellerProfileAdmin)
 
