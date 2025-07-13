@@ -40,7 +40,7 @@ class DeliverySerializer(s.ModelSerializer):
         model = Delivery
         fields = ['id', 'order', 'delivery_person','status' ,'shipped_at', 'delivered_at' ]
 
-class NotificationSerializer(m.ModelSerializer):
+class NotificationSerializer(s.ModelSerializer):
     class Meta:
         model = Notification
         fields = ['id', 'user', 'message','seen' ,'created_at' ]
