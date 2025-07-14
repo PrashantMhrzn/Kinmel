@@ -35,8 +35,7 @@ admin.site.register(User, UserAdmin)
 
 class SellerInventoryInline(admin.TabularInline):
     model = SellerInventory
-    extra = 3
-    max_num = 50
+    extra = 1
 
 class SellerProfileAdmin(admin.ModelAdmin):
     search_fields = ('user__username', 'company_name', 'verified')

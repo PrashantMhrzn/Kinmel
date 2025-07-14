@@ -29,11 +29,16 @@ class CartSerializer(s.ModelSerializer):
 # class CartItemSerializer(s.ModelSerializer):
 #     class Meta:
 #         model = CartItem
+class OrderItemSerializer(s.ModelSerializer):
+    class Meta:
+        model = OrderItem
+        fields = ['id', 'order', 'product', 'quantity', 'purchase_price']
 
 class OrderSerializer(s.ModelSerializer):
+    items = OrderItemSerializer(many=True, read_only=True)
     class Meta:
         model = Order
-        fields = ['id', 'customer', 'total_price','status' ,'created_at', 'updated_at' ]
+        fields = ['id', 'customer', 'total_price','status' ,'created_at', 'updated_at', 'items' ]
 
 class DeliverySerializer(s.ModelSerializer):
     class Meta:
