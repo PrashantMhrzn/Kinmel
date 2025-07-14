@@ -30,12 +30,14 @@ class CartSerializer(s.ModelSerializer):
 #     class Meta:
 #         model = CartItem
 class OrderItemSerializer(s.ModelSerializer):
+    product = s.SlugRelatedField(slug_field='name', queryset=Product.objects.all())
     class Meta:
         model = OrderItem
-        fields = ['id', 'order', 'product', 'quantity', 'purchase_price']
+        fields = ['id', 'product', 'quantity', 'purchase_price']
 
 class OrderSerializer(s.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
+    customer = s.CharField(source='customer.username', read_only=True)
     class Meta:
         model = Order
         fields = ['id', 'customer', 'total_price','status' ,'created_at', 'updated_at', 'items' ]

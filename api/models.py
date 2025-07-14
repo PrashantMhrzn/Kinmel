@@ -153,7 +153,7 @@ class Order(m.Model):
         return f"Order #{self.pk} by {self.customer.username}"
 
 class OrderItem(m.Model):
-    order = m.ForeignKey(Order, on_delete=m.CASCADE, related_name='Oitems')
+    order = m.ForeignKey(Order, on_delete=m.CASCADE, related_name='items')
     product = m.ForeignKey(Product, on_delete=m.CASCADE)
     quantity = m.PositiveIntegerField()
     purchase_price = m.DecimalField(max_digits=10, decimal_places=2)
