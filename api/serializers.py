@@ -21,10 +21,18 @@ class SellerInventorySerializer(s.ModelSerializer):
         model = SellerInventory
         fields = ['id', 'seller', 'profile', 'product', 'stock_quantity']
 
+class CartItemSerializer(s.ModelSerializer):
+    product = s.SlugRelatedField(slug_field='name', queryset=Product.objects.all())
+    class Meta:
+        model = CartItem
+        fields = ['product', 'quantity']
+
 class CartSerializer(s.ModelSerializer):
+    cart_items = CartItemSerializer(many=True, read_only=True)
+    user = s.CharField(source='user.username', read_only=True)
     class Meta:
         model = Cart
-        fields = ['id', 'user', 'created_at', 'updated_at', 'total_price']
+        fields = ['id', 'user', 'created_at', 'updated_at', 'total_price', 'cart_items']
 
 # class CartItemSerializer(s.ModelSerializer):
 #     class Meta:
