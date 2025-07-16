@@ -41,10 +41,9 @@ class SellerProfileAdmin(admin.ModelAdmin):
     search_fields = ('user__username', 'company_name', 'verified')
     list_display = ('user', 'company_name', 'verified')
     list_filter = ('user__username', 'verified')
+    inlines = [SellerInventoryInline]
     list_per_page = 15
     list_editable = ('verified',)
-    inlines = [SellerInventoryInline]
-
 
 admin.site.register(SellerProfile, SellerProfileAdmin)
 
@@ -63,7 +62,6 @@ class ProductAdmin(admin.ModelAdmin):
     list_per_page = 15
 
 admin.site.register(Product, ProductAdmin)
-
 
 class SellerInventoryAdmin(admin.ModelAdmin):
     search_fields = ('seller__username', 'product__name')

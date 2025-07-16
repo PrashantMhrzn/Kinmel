@@ -43,8 +43,8 @@ class Product(m.Model):
         return self.name
 
 class SellerInventory(m.Model):
-    seller = m.OneToOneField(User, on_delete=m.CASCADE, limit_choices_to={'role': 'seller'})
-    profile = m.OneToOneField(SellerProfile, on_delete=m.CASCADE, null=True, blank=True)
+    seller = m.ForeignKey(User, on_delete=m.CASCADE, limit_choices_to={'role': 'seller'})
+    profile = m.ForeignKey(SellerProfile, on_delete=m.CASCADE, related_name='inventory', null=True, blank=True)
     product = m.ForeignKey(Product, on_delete=m.CASCADE)
     stock_quantity = m.PositiveIntegerField()
 
