@@ -29,6 +29,7 @@ class CategorySerializer(s.ModelSerializer):
         fields = ['id', 'name', 'description']
 
 class ProductSerializer(s.ModelSerializer):
+    posted_at = s.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
     class Meta:
         model = Product
         fields = ['id', 'name', 'description', 'price', 'category', 'seller', 'posted_at']
@@ -69,12 +70,16 @@ class OrderSerializer(s.ModelSerializer):
         fields = ['id', 'customer', 'total_price','status' ,'created_at', 'updated_at', 'items' ]
 
 class DeliverySerializer(s.ModelSerializer):
+    delivery_person = s.SlugRelatedField(slug_field='username', queryset=User.objects.all())
+    shipped_at = s.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
+    delivered_at = s.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
     class Meta:
         model = Delivery
         fields = ['id', 'order', 'delivery_person','status' ,'shipped_at', 'delivered_at' ]
 
 class NotificationSerializer(s.ModelSerializer):
     created_at = s.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
+    user = s.SlugRelatedField(slug_field='username', queryset=User.objects.all())
     class Meta:
         model = Notification
         fields = ['id', 'user', 'message','seen' ,'created_at' ]

@@ -172,6 +172,6 @@ class Delivery(m.Model):
 
 class Notification(m.Model):
     user = m.ForeignKey(User, on_delete=m.CASCADE)
-    mesage = m.TextField()
+    message = m.TextField()
     seen = m.BooleanField(default=False)
     created_at = m.DateTimeField(auto_now_add=True)
