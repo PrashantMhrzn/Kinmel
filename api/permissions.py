@@ -56,26 +56,47 @@ class ProductOwnerOrReadOnly(BasePermission):
         return request.user.is_authenticated and obj.seller == request.user
 
 class CartOwnerPermission(BasePermission):
+    def has_permission(self, request, view):
+        user = request.user
+
+        # Must be logged in and either admin or customer
+        return user.is_authenticated and user.role in ['admin', 'customer']
+
     def has_object_permission(self, request, view, obj):
         user = request.user
-        if request.method in SAFE_METHODS:
-            return user.role in ['customer', 'admin']
-        return user.role == 'customer' and obj.customer == user
+
+        # Admin can access all carts
+        if user.is_staff:
+            return True
+
+        # Customer can access their own cart only
+        return obj.customer == user
 
 class OrderPermission(BasePermission):
-    def has_object_permission(self, request, view, obj):
+    def has_permission(self, request, view):
         user = request.user
 
-        # Only allow read access to specific roles if the user is authenticated
-        if request.method in SAFE_METHODS:
-            return user.is_authenticated and user.role in ['admin', 'seller', 'customer', 'delivery']
+        if not user.is_authenticated:
+            return False 
 
-        # Only admin can edit
-        return user.is_authenticated and user.is_staff
-
-class DeliveryPermission(BasePermission):
-    def has_object_permission(self, request, view, obj):
-        user = request.user
         if request.method in SAFE_METHODS:
             return user.role in ['admin', 'seller', 'customer', 'delivery']
-        return user.role in ['admin', 'delivery']
+
+        return user.is_staff
+
+    def has_object_permission(self, request, view, obj):
+        return self.has_permission(request, view)
+
+class DeliveryPermission(BasePermission):
+    def has_permission(self, request, view):
+        user = request.user
+        # Only allow authenticated admin or delivery personnel
+        return user.is_authenticated and user.role in ['admin', 'delivery']
+
+    def has_object_permission(self, request, view, obj):
+        user = request.user
+        # Admin can access all deliveries
+        if user.role == 'admin':
+            return True
+        # Delivery personnel can only access their own deliveries
+        return obj.delivery_person == user

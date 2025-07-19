@@ -79,29 +79,26 @@ class Cart(m.Model):
         from .models import Order, OrderItem 
 
         if self.items.count() == 0:
-            raise ValueError("Cart is empty.")
+            raise ValueError("Cannot checkout: Cart is empty")
 
+        # Create our order 
         order = Order.objects.create(
             customer=self.customer,
             status='pending',
-            total_price=0.0
+            total_price=self.total_price
         )
-
-        total = 0
+        # Create order items from cart items
+        # Create order items from cart items
         for item in self.cart_items.all():
-            subtotal = item.product.price * item.quantity
             OrderItem.objects.create(
-                order = order,
-                product = item.product,
-                quantity = item.quantity,
-                purchase_price = item.product.price
+                order=order,
+                product=item.product,
+                quantity=item.quantity,
+                purchase_price=item.product.price
             )
-            total += subtotal
 
-        order.total_price = total
-        order.save()
-
-        self.items.all().delete()
+        # Clear the cart
+        self.cart_items.all().delete()
         self.total_price = 0
         self.save()
 

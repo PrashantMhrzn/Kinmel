@@ -43,7 +43,7 @@ class CartItemSerializer(s.ModelSerializer):
 class CartSerializer(s.ModelSerializer):
     cart_items = CartItemSerializer(many=True, read_only=True)
     user = s.CharField(source='user.username', read_only=True)
-
+    total_price = s.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     created_at = s.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
     updated_at = s.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
     class Meta:
