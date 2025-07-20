@@ -78,12 +78,12 @@ class Cart(m.Model):
         # This method only runs when called and not on load so by then all models are loaded
         from .models import Order, OrderItem 
 
-        if self.items.count() == 0:
+        if self.cart_items.count() == 0:
             raise ValueError("Cannot checkout: Cart is empty")
 
         # Create our order 
         order = Order.objects.create(
-            customer=self.customer,
+            customer=self.user,
             status='pending',
             total_price=self.total_price
         )
@@ -96,7 +96,14 @@ class Cart(m.Model):
                 quantity=item.quantity,
                 purchase_price=item.product.price
             )
-
+            
+        # Create notification for the customer
+        Notification.objects.create(
+        user=self.user,
+        message=f"Your order #{order.id} has been confirmed! Total: ${self.total_price}",
+        seen=False
+        )
+        
         # Clear the cart
         self.cart_items.all().delete()
         self.total_price = 0

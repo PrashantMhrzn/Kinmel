@@ -3,9 +3,10 @@ from .models import *
 
 class SellerInventorySerializer(s.ModelSerializer):
     product = s.SlugRelatedField(slug_field='name', read_only=True)
+    seller = s.CharField(source='seller.username', read_only=True)
 
     class Meta:
-        model = SellerInventory
+        model = SellerInventory 
         exclude = ['profile']
 
 class SellerProfileSerializer(s.ModelSerializer):

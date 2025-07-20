@@ -76,10 +76,20 @@ class CartView(ModelViewSet):
         try:
             order = cart.checkout()
             serializer = OrderSerializer(order)
+            # Get the latest notification for this order
+            notification = Notification.objects.filter(
+                user=user,
+                message__contains=f"order #{order.id}"
+            ).first()
+            
+            serializer = OrderSerializer(order)
+            notification_serializer = NotificationSerializer(notification) if notification else None
+            
             return Response(
                 {
                     "message": "Checkout successful!",
-                    "order": serializer.data
+                    "order": serializer.data,
+                    "notification": notification_serializer.data if notification else None
                 },
                 status=status.HTTP_201_CREATED
             )
@@ -125,3 +135,13 @@ class NotificationView(ModelViewSet):
     queryset = Notification.objects.all()
     serializer_class = NotificationSerializer
     permission_classes = [ReadOnly]
+
+    def get_queryset(self):
+        return Notification.objects.filter(user=self.request.user).order_by('-created_at')
+
+    # @action(detail=True, methods=['patch'])
+    # def mark_as_read(self, request, pk=None):
+    #     notification = self.get_object()
+    #     notification.seen = True
+    #     notification.save()
+    #     return Response({"status": "marked as read"})
