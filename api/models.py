@@ -87,7 +87,7 @@ class Cart(m.Model):
             status='pending',
             total_price=self.total_price
         )
-        # Create order items from cart items
+        
         # Create order items from cart items
         for item in self.cart_items.all():
             OrderItem.objects.create(

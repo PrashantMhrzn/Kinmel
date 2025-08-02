@@ -155,10 +155,26 @@ REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
-
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Kinmel E-Commerce API',
     'DESCRIPTION': 'API for Kinmel Online Shopping',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
 }
+
+# EMAIL_HOST = os.getenv('EMAIL_HOST')
+
+# EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+
+# EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+
+# EMAIL_PORT = os.getenv('EMAIL_PORT')
+
+# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'sandbox.smtp.mailtrap.io'
+EMAIL_HOST_USER = '053cc0329f4dc3'
+EMAIL_HOST_PASSWORD = '7b65e38fc0a616'
+EMAIL_PORT = 2525
+EMAIL_USE_TLS = True
