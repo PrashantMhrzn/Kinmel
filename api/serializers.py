@@ -31,6 +31,7 @@ class CategorySerializer(s.ModelSerializer):
 
 class ProductSerializer(s.ModelSerializer):
     posted_at = s.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
+    category = s.SlugRelatedField(slug_field='name', queryset=Category.objects.all())
     class Meta:
         model = Product
         fields = ['id', 'name', 'description', 'price', 'category', 'seller', 'posted_at']

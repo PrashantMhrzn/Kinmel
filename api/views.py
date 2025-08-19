@@ -134,7 +134,7 @@ class DeliveryView(ModelViewSet):
 class NotificationView(ModelViewSet):
     queryset = Notification.objects.all()
     serializer_class = NotificationSerializer
-    permission_classes = [ReadOnly]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         return Notification.objects.filter(user=self.request.user).order_by('-created_at')
