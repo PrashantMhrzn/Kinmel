@@ -5,7 +5,7 @@ from .forms import CustomUserCreationForm, CustomUserChangeForm
 # Register your models here.
 # Text changes in admin page
 admin.site.site_header = "Kinmel Admin"
-admin.site.site_title = "Kinmel"
+admin.site.site_title = "Kinmel Admin"
 admin.site.index_title = "Welcome to Kinmel Admin Page"
 # since we have created a custom user, we have to register it using the UserAdmin class to have
 # all the default values for Abstract User

@@ -47,8 +47,8 @@ With integrated features like order tracking, inventory management, and email no
 
 ### Prerequisites
 - Python **3.12+**
-- PostgreSQL (recommended) or SQLite for testing
-- `pip` (Python package manager)
+- PostgreSQL or SQLite for testing
+- `pip`
 
 ### Installation
 
