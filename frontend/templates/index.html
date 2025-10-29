@@ -1,0 +1,250 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Kinmel - Beauty & Wellness{% endblock %}
+
+{% block header %}
+<!-- Header Component -->
+<header class="sticky-top bg-card border-bottom border-border" style="z-index: 1000;">
+    <!-- Top Bar -->
+    <div class="bg-primary text-primary-foreground py-2 px-4">
+        <div class="container-fluid">
+            <div class="d-flex justify-content-between align-items-center text-sm">
+                <span>Upload Prescriptions</span>
+                <div class="d-flex align-items-center gap-3">
+                    <span>Hello User</span>
+                    <select class="bg-transparent border-0 text-primary-foreground cursor-pointer">
+                        <option>EN</option>
+                        <option>ES</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Header -->
+    <div class="px-4 py-3">
+        <div class="container-fluid">
+            <!-- Logo and Search Row -->
+            <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
+                <div class="d-flex align-items-center gap-2">
+                    <h1 class="h3 mb-0 fw-bold text-primary">Kinmel</h1>
+                </div>
+
+                <!-- Search Bar - Hidden on mobile -->
+                <div class="d-none d-md-flex flex-grow-1 mx-4" style="max-width: 500px;">
+                    <div class="position-relative w-100">
+                        <i class="bi bi-search position-absolute top-50 start-3 translate-middle-y text-muted-foreground"></i>
+                        <input type="text" placeholder="Search for Products, Medicine..." class="form-input ps-5">
+                    </div>
+                </div>
+
+                <!-- Right Icons -->
+                <div class="d-flex align-items-center gap-2">
+                    <button class="btn-ghost d-none d-md-flex">
+                        <i class="bi bi-bell"></i>
+                    </button>
+                    <button class="btn-ghost d-none d-md-flex">
+                        <i class="bi bi-person"></i>
+                    </button>
+                    <button class="btn-ghost">
+                        <i class="bi bi-cart"></i>
+                    </button>
+                    <button class="btn-ghost d-md-none" data-bs-toggle="collapse" data-bs-target="#mobileMenu">
+                        <i class="bi bi-list"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Mobile Search -->
+            <div class="d-md-none mb-3">
+                <div class="position-relative w-100">
+                    <i class="bi bi-search position-absolute top-50 start-3 translate-middle-y text-muted-foreground"></i>
+                    <input type="text" placeholder="Search..." class="form-input ps-5">
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="collapse d-md-block" id="mobileMenu">
+                <div class="d-flex flex-column flex-md-row align-items-md-center gap-2 gap-md-4 fw-medium">
+                    <a href="#" class="nav-link-custom py-2">CATEGORIES</a>
+                    <a href="#" class="nav-link-custom py-2">BRANDS</a>
+                    <a href="#" class="nav-link-custom py-2">OFFERS</a>
+                    <a href="#" class="nav-link-custom py-2">DEALS</a>
+                </div>
+            </nav>
+        </div>
+    </div>
+</header>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Banner Component -->
+<section class="px-3 px-md-4 py-4">
+    <div class="container-fluid">
+        <div class="hero-slide purple rounded-3 overflow-hidden position-relative" style="height: 384px;">
+            <img src="{% static 'frontend/images/wellness-beauty-products.jpg' %}" alt="Wellness Collection" class="hero-image">
+            <div class="position-relative z-2 px-4 px-md-5 h-100 d-flex align-items-center">
+                <div class="w-100 w-md-50">
+                    <h2 class="display-5 fw-bold text-foreground mb-3">Wellness Collection</h2>
+                    <p class="fs-5 text-muted-foreground mb-4">Premium health and beauty essentials</p>
+                    <button class="btn-primary-custom">SHOP NOW</button>
+                </div>
+            </div>
+            
+            <!-- Navigation Dots -->
+            <div class="position-absolute bottom-4 start-50 translate-middle-x z-3 d-flex gap-2">
+                <button class="rounded-pill border-0 p-0" style="width: 8px; height: 8px; background: rgba(255,255,255,0.5);"></button>
+                <button class="rounded-pill border-0 p-0" style="width: 8px; height: 8px; background: rgba(255,255,255,0.5);"></button>
+                <button class="rounded-pill border-0 p-0" style="width: 24px; height: 8px; background: white;"></button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Category Carousel Component -->
+<section class="px-3 px-md-4 py-5 bg-background">
+    <div class="container-fluid">
+        <div class="position-relative">
+            <div class="d-flex gap-3 overflow-auto pb-3 scroll-container">
+                {% for category in categories %}
+                <div class="flex-shrink-0" style="width: 140px; cursor: pointer;">
+                    <div class="category-circle mb-3">
+                        <img src="{% static category.image %}" alt="{{ category.name }}" class="w-100 h-100 object-fit-cover">
+                    </div>
+                    <p class="text-center fw-medium text-sm text-foreground mb-0">{{ category.name }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Most Searched Products -->
+<section class="px-3 px-md-4 py-5">
+    <div class="container-fluid">
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <h2 class="h3 fw-bold text-foreground mb-0">Most Searched Products</h2>
+            <a href="#" class="text-primary text-decoration-none fw-medium">View all</a>
+        </div>
+        
+        <!-- Product Carousel -->
+        <div class="position-relative">
+            <div class="d-flex gap-3 overflow-auto pb-3 scroll-container">
+                {% for product in products %}
+                <div class="product-card flex-shrink-0 rounded-3 overflow-hidden" style="width: 192px;">
+                    <div class="position-relative bg-muted overflow-hidden" style="height: 224px;">
+                        <img src="{% static product.image %}" alt="{{ product.name }}" class="product-image w-100">
+                        <button class="btn-ghost position-absolute top-3 end-3 bg-white rounded-circle p-2">
+                            <i class="bi bi-heart text-muted"></i>
+                        </button>
+                        {% if product.discount != "0% off" %}
+                        <div class="position-absolute top-3 start-3 bg-primary text-primary-foreground px-2 py-1 rounded small fw-bold">
+                            {{ product.discount }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="p-3">
+                        <h3 class="fw-medium text-sm text-foreground mb-2" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">{{ product.name }}</h3>
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="bi bi-star-fill text-primary small"></i>
+                            <span class="small fw-medium text-foreground">{{ product.rating }}</span>
+                            <span class="small text-muted-foreground">({{ product.reviews }})</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <span class="fw-bold text-foreground">{{ product.price }}</span>
+                            <span class="small text-muted-foreground text-decoration-line-through">{{ product.originalPrice }}</span>
+                        </div>
+                        <button class="btn-primary-custom w-100 small">Add to Cart</button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Trending Sunscreens -->
+<section class="px-3 px-md-4 py-5 bg-secondary">
+    <div class="container-fluid">
+        <h2 class="h3 fw-bold text-foreground mb-4">Trending Sunscreens</h2>
+        
+        <!-- Product Carousel -->
+        <div class="position-relative">
+            <div class="d-flex gap-3 overflow-auto pb-3 scroll-container">
+                {% for product in trending_products %}
+                <div class="product-card flex-shrink-0 rounded-3 overflow-hidden" style="width: 192px;">
+                    <div class="position-relative bg-muted overflow-hidden" style="height: 224px;">
+                        <img src="{% static product.image %}" alt="{{ product.name }}" class="product-image w-100">
+                        <button class="btn-ghost position-absolute top-3 end-3 bg-white rounded-circle p-2">
+                            <i class="bi bi-heart text-muted"></i>
+                        </button>
+                        {% if product.discount != "0% off" %}
+                        <div class="position-absolute top-3 start-3 bg-primary text-primary-foreground px-2 py-1 rounded small fw-bold">
+                            {{ product.discount }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="p-3">
+                        <h3 class="fw-medium text-sm text-foreground mb-2" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">{{ product.name }}</h3>
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="bi bi-star-fill text-primary small"></i>
+                            <span class="small fw-medium text-foreground">{{ product.rating }}</span>
+                            <span class="small text-muted-foreground">({{ product.reviews }})</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <span class="fw-bold text-foreground">{{ product.price }}</span>
+                            <span class="small text-muted-foreground text-decoration-line-through">{{ product.originalPrice }}</span>
+                        </div>
+                        <button class="btn-primary-custom w-100 small">Add to Cart</button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Brands Section -->
+<section class="px-3 px-md-4 py-5">
+    <div class="container-fluid">
+        <h2 class="h3 fw-bold text-foreground mb-4">Brands You Don't Want to Miss</h2>
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="rounded-3 p-4 d-flex align-items-center justify-content-center min-vh-25" style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(139, 92, 246, 0.05));">
+                    <div class="text-center">
+                        <h3 class="h2 fw-bold text-foreground mb-2">SKINOO4</h3>
+                        <p class="text-muted-foreground mb-0">Premium skincare collection</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="rounded-3 p-4 d-flex align-items-center justify-content-center min-vh-25" style="background: linear-gradient(135deg, #fefce8, #fef9c3);">
+                    <div class="text-center">
+                        <h3 class="h2 fw-bold text-foreground mb-2">COSRX</h3>
+                        <p class="text-muted-foreground mb-0">Korean beauty essentials</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Mobile menu toggle
+document.addEventListener('DOMContentLoaded', function() {
+    const mobileMenuButton = document.querySelector('[data-bs-toggle="collapse"]');
+    const mobileMenu = document.getElementById('mobileMenu');
+    
+    // Close mobile menu when clicking outside
+    document.addEventListener('click', function(event) {
+        if (!mobileMenu.contains(event.target) && !mobileMenuButton.contains(event.target)) {
+            const bsCollapse = new bootstrap.Collapse(mobileMenu);
+            bsCollapse.hide();
+        }
+    });
+});
+</script>
+{% endblock %}

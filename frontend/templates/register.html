@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Register - Kinmel{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-5">
+                <div class="auth-card p-4 p-md-5 fade-in">
+                    <div class="text-center mb-5">
+                        <h1 class="h2 fw-bold text-primary mb-2">Kinmel</h1>
+                        <p class="text-muted-foreground">Create your account</p>
+                    </div>
+
+                    <form method="post" action="{% url 'register' %}">
+                        {% csrf_token %}
+                        
+                        {% if form.errors %}
+                        <div class="alert alert-danger">
+                            Please correct the errors below.
+                        </div>
+                        {% endif %}
+
+                        <div class="mb-3">
+                            <label for="username" class="form-label text-foreground fw-medium">Username</label>
+                            <input type="text" name="username" id="username" class="form-input" placeholder="Choose a username" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="email" class="form-label text-foreground fw-medium">Email</label>
+                            <input type="email" name="email" id="email" class="form-input" placeholder="Enter your email" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="password1" class="form-label text-foreground fw-medium">Password</label>
+                            <input type="password" name="password1" id="password1" class="form-input" placeholder="Create a password" required>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="password2" class="form-label text-foreground fw-medium">Confirm Password</label>
+                            <input type="password" name="password2" id="password2" class="form-input" placeholder="Confirm your password" required>
+                        </div>
+
+                        <button type="submit" class="btn-primary-custom w-100 mb-3">Create Account</button>
+                        
+                        <div class="text-center">
+                            <p class="text-muted-foreground mb-0">
+                                Already have an account? 
+                                <a href="{% url 'login' %}" class="text-primary text-decoration-none fw-medium">Sign in</a>
+                            </p>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
