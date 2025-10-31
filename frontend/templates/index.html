@@ -83,7 +83,7 @@
 <section class="px-3 px-md-4 py-4">
     <div class="container-fluid">
         <div class="hero-slide purple rounded-3 overflow-hidden position-relative" style="height: 384px;">
-            <img src="{% static 'frontend/images/wellness-beauty-products.jpg' %}" alt="Wellness Collection" class="hero-image">
+            <img src="{% static '/images/wellness-beauty-products.jpg' %}" alt="Wellness Collection" class="hero-image">
             <div class="position-relative z-2 px-4 px-md-5 h-100 d-flex align-items-center">
                 <div class="w-100 w-md-50">
                     <h2 class="display-5 fw-bold text-foreground mb-3">Wellness Collection</h2>
@@ -110,10 +110,15 @@
                 {% for category in categories %}
                 <div class="flex-shrink-0" style="width: 140px; cursor: pointer;">
                     <div class="category-circle mb-3">
-                        <img src="{% static category.image %}" alt="{{ category.name }}" class="w-100 h-100 object-fit-cover">
+                        <i class="fa-solid fa-book fa-lg"></i>
                     </div>
                     <p class="text-center fw-medium text-sm text-foreground mb-0">{{ category.name }}</p>
                 </div>
+                {% empty %}
+                <p class="text-muted">No categories available</p>
+                        {% comment %} <img src="{% static category.image %}" alt="{{ category.name }}" class="w-100 h-100 object-fit-cover"> {% endcomment %}
+                    <p class="text-center fw-medium text-sm text-foreground mb-0">{{ category.name }}</p>
+        
                 {% endfor %}
             </div>
         </div>

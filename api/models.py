@@ -38,7 +38,8 @@ class Product(m.Model):
     # Only users with seller role are able to be displayed as a seller for the product
     seller = m.ForeignKey(User, on_delete=m.CASCADE, limit_choices_to={'role': 'seller'})
     posted_at = m.DateTimeField(auto_now_add=True)
-
+    image_url = m.URLField(blank=True, default='')
+    
     def __str__(self):
         return self.name
 

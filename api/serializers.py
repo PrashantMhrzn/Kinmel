@@ -34,7 +34,7 @@ class ProductSerializer(s.ModelSerializer):
     category = s.SlugRelatedField(slug_field='name', queryset=Category.objects.all())
     class Meta:
         model = Product
-        fields = ['id', 'name', 'description', 'price', 'category', 'seller', 'posted_at']
+        fields = ['id', 'name', 'description', 'price', 'category', 'seller', 'posted_at', 'image_url']
 
 class CartItemSerializer(s.ModelSerializer):
     product = s.SlugRelatedField(slug_field='name', queryset=Product.objects.all())
