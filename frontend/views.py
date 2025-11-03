@@ -1,33 +1,48 @@
 from django.shortcuts import render
-from api.models import Product, Category
-import requests
+from django.test import Client
 from http import HTTPStatus
-# Create your views here.
+
 def home(request):
+    # Initialize context first to avoid "local variable" error
+    context = {
+        'categories': [],
+        'most_searched': [],
+    }
+    
     try:
-        # fetch data from api
-        api_base_url = "http://localhost:8000/api/v1"
-
-        categories_response = requests.get(f'{api_base_url}/category/')
-
+        # Create Django test client
+        client = Client()
+        
+        # Get categories
+        categories_response = client.get('/api/v1/category/')
+        
         if categories_response.status_code == 200:
-            categories = categories_response.json()
-            print(categories)
+            categories_data = categories_response.json()
+            context['categories'] = categories_data.get('results', [])
+            print("CATEGORIES:", len(context['categories']))
         else:
-            categories = []
+            print(f"Categories API Error: {categories_response.status_code}")
 
-        context = {
-            # 'featured_products': featured_products,
-            'categories': categories,
-        }
+        # Get most searched products
+        products_response = client.get('/api/v1/products/')
+        if products_response.status_code == 200:
+            products_data = products_response.json()
+            products = products_data.get('results', [])
+            # Take first 8 as most searched (you can add proper sorting later)
+            context['most_searched'] = products[:8]
+            print("MOST SEARCHED:", len(context['most_searched']))
+        else:
+            print(f"Products API Error: {products_response.status_code}")
 
         return render(request, 'index.html', context)
-    except:
-        pass
+    
+    except Exception as e:
+        print(f"Exception: {e}")
+        # Context is already defined, so no error here
+        return render(request, 'index.html', context)
 
 def login(request):
     return render(request, 'login.html')
 
 def register(request):
     return render(request, 'register.html')
-

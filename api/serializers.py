@@ -27,7 +27,7 @@ class SellerProfileSerializer(s.ModelSerializer):
 class CategorySerializer(s.ModelSerializer):
     class Meta:
         model = Category
-        fields = ['id', 'name', 'description']
+        fields = ['id', 'name', 'description', 'image_url']
 
 class ProductSerializer(s.ModelSerializer):
     posted_at = s.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)

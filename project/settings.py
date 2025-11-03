@@ -142,7 +142,7 @@ AUTH_USER_MODEL = 'api.User'
 REST_FRAMEWORK = {
     # Pagination settings
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 10,
+    'PAGE_SIZE': 50,
     # API filter settings
     'DEFAULT_FILTER_BACKENDS': [
         'django_filters.rest_framework.DjangoFilterBackend',
@@ -182,3 +182,9 @@ EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 EMAIL_PORT = 2525
 EMAIL_USE_TLS = True
+
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1', 
+    'testserver',
+]

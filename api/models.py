@@ -25,6 +25,7 @@ class SellerProfile(m.Model):
 class Category(m.Model):
     name = m.CharField(max_length=100, unique=True)
     description = m.TextField(blank=True)
+    image_url = m.URLField(blank=True, null=True)
 
     def __str__(self):
         return self.name

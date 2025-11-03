@@ -110,15 +110,21 @@
                 {% for category in categories %}
                 <div class="flex-shrink-0" style="width: 140px; cursor: pointer;">
                     <div class="category-circle mb-3">
-                        <i class="fa-solid fa-book fa-lg"></i>
+                        {% if category.image_url %}
+                            <img src="{{ category.image_url }}" 
+                                 alt="{{ category.name }}" 
+                                 class="w-100 h-100 object-fit-cover rounded-circle">
+                        {% else %}
+                            <!-- Fallback if no image -->
+                            <div class="w-100 h-100 bg-gradient-primary rounded-circle d-flex align-items-center justify-content-center">
+                                <i class="fa-solid fa-tag text-white fa-lg"></i>
+                            </div>
+                        {% endif %}
                     </div>
                     <p class="text-center fw-medium text-sm text-foreground mb-0">{{ category.name }}</p>
                 </div>
                 {% empty %}
                 <p class="text-muted">No categories available</p>
-                        {% comment %} <img src="{% static category.image %}" alt="{{ category.name }}" class="w-100 h-100 object-fit-cover"> {% endcomment %}
-                    <p class="text-center fw-medium text-sm text-foreground mb-0">{{ category.name }}</p>
-        
                 {% endfor %}
             </div>
         </div>
