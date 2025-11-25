@@ -7,6 +7,11 @@ from rest_framework.response import Response
 from rest_framework import viewsets, status
 from .permissions import *
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAuthenticatedOrReadOnly
+from rest_framework_simplejwt.views import TokenObtainPairView
+from .serializers import CustomTokenObtainPairSerializer
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
 
 class SellerProfileView(ModelViewSet):
     queryset = SellerProfile.objects.all()
