@@ -1,4 +1,4 @@
-from django.db import models as m
+from django.db import models
 from django.contrib.auth.models import AbstractUser
 
 # Custom user for Role based use
@@ -9,58 +9,58 @@ class User(AbstractUser):
         ('seller', 'Seller'),
         ('delivery', 'Delivery Personnel'),
     )
-    role = m.CharField(max_length=20, choices=ROLE_CHOICES)
-    phone = m.CharField(max_length=15, blank=True, null=True)
-    address = m.TextField(blank=True, null=True)
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+    phone = models.CharField(max_length=15, blank=True, null=True)
+    address = models.TextField(blank=True, null=True)
 
-class SellerProfile(m.Model):
+class SellerProfile(models.Model):
     # One user(who is a seller) can only have one Seller Profile
-    user = m.OneToOneField(User, on_delete=m.CASCADE, limit_choices_to={'role': 'seller'})
-    company_name = m.CharField(max_length=100)
-    verified = m.BooleanField(default=False)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, limit_choices_to={'role': 'seller'})
+    company_name = models.CharField(max_length=100)
+    verified = models.BooleanField(default=False)
 
     def __str__(self):
         return self.user.username
 
-class Category(m.Model):
-    name = m.CharField(max_length=100, unique=True)
-    description = m.TextField(blank=True)
+class Category(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True)
 
     def __str__(self):
         return self.name
 
-class Product(m.Model):
-    name = m.CharField(max_length=100)
-    description = m.TextField()
-    price = m.DecimalField(max_digits=10, decimal_places=2)
+class Product(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.TextField()
+    price = models.DecimalField(max_digits=10, decimal_places=2)
     # If category is deleted we still want the Product to show
-    category = m.ForeignKey(Category, on_delete=m.SET_NULL, null=True)
+    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True)
     # Only users with seller role are able to be displayed as a seller for the product
-    seller = m.ForeignKey(User, on_delete=m.CASCADE, limit_choices_to={'role': 'seller'})
-    posted_at = m.DateTimeField(auto_now_add=True)
-    image_url = m.URLField(blank=True, default='')
+    seller = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'role': 'seller'})
+    posted_at = models.DateTimeField(auto_now_add=True)
+    image_url = models.URLField(blank=True, default='')
     
     def __str__(self):
         return self.name
 
-class SellerInventory(m.Model):
-    seller = m.ForeignKey(User, on_delete=m.CASCADE, limit_choices_to={'role': 'seller'})
-    profile = m.ForeignKey(SellerProfile, on_delete=m.CASCADE, related_name='inventory', null=True, blank=True)
-    product = m.ForeignKey(Product, on_delete=m.CASCADE)
-    stock_quantity = m.PositiveIntegerField()
+class SellerInventory(models.Model):
+    seller = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'role': 'seller'})
+    profile = models.ForeignKey(SellerProfile, on_delete=models.CASCADE, related_name='inventory', null=True, blank=True)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    stock_quantity = models.PositiveIntegerField()
 
     def __str__(self):
         return self.seller.username
 
-class Cart(m.Model):
-    user = m.OneToOneField(User, on_delete=m.CASCADE, limit_choices_to={'role': 'customer'})
+class Cart(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, limit_choices_to={'role': 'customer'})
     # auto_now_add=True: Sets the timestamp only once, on creation. 
     # Ideal for created_at or added_on fields.
-    created_at = m.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True)
     # auto_now=True: Updates the timestamp every time the object is saved. 
     # Ideal for updated_at or last_modified fields.
-    updated_at = m.DateTimeField(auto_now=True)
-    total_price = m.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    updated_at = models.DateTimeField(auto_now=True)
+    total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
 
     # Each time an item is added to this cart, we take its price and add it to the total 
     # so that we have a total price of all items in the cart
@@ -116,12 +116,12 @@ class Cart(m.Model):
         return self.user.username
 
 # Each item in a cart
-class CartItem(m.Model):
+class CartItem(models.Model):
     # Referring to the Model by its string name so that we can have circular reference for 
     # total price
-    cart = m.ForeignKey('Cart', on_delete=m.CASCADE, related_name='cart_items')
-    product = m.ForeignKey(Product, on_delete=m.CASCADE)
-    quantity = m.PositiveIntegerField(default=1)
+    cart = models.ForeignKey('Cart', on_delete=models.CASCADE, related_name='cart_items')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1)
 
     # Modifying the save function so that when a item is saved, it also updates the cart's 
     # total price
@@ -140,7 +140,7 @@ class CartItem(m.Model):
         unique_together = ('cart', 'product')
 
 
-class Order(m.Model):
+class Order(models.Model):
     STATUS_CHOICES = (
         ('pending', 'Pending'),
         ('processing', 'Processing'),
@@ -148,35 +148,35 @@ class Order(m.Model):
         ('delivered', 'Delivered'),
         ('cancelled', 'Cancelled'),
     )
-    customer = m.ForeignKey(User, limit_choices_to={'role': 'customer'}, on_delete=m.CASCADE)
-    total_price = m.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    status = m.CharField(choices=STATUS_CHOICES, default='pending')
-    created_at = m.DateTimeField(auto_now_add=True)
-    updated_at = m.DateTimeField(auto_now=True)
+    customer = models.ForeignKey(User, limit_choices_to={'role': 'customer'}, on_delete=models.CASCADE)
+    total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    status = models.CharField(choices=STATUS_CHOICES, default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"Order #{self.pk} by {self.customer.username}"
 
-class OrderItem(m.Model):
-    order = m.ForeignKey(Order, on_delete=m.CASCADE, related_name='items')
-    product = m.ForeignKey(Product, on_delete=m.CASCADE)
-    quantity = m.PositiveIntegerField()
-    purchase_price = m.DecimalField(max_digits=10, decimal_places=2)
+class OrderItem(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField()
+    purchase_price = models.DecimalField(max_digits=10, decimal_places=2)
 
     def __str__(self):
         return f"{self.quantity} x {self.product.name} in Order #{self.order.id}"
 
-class Delivery(m.Model):
+class Delivery(models.Model):
     # One order can only be delivered once
-    order = m.OneToOneField(Order, on_delete=m.CASCADE)
-    delivery_person = m.ForeignKey(User, limit_choices_to={'role': 'delivery'},on_delete=m.CASCADE)
+    order = models.OneToOneField(Order, on_delete=models.CASCADE)
+    delivery_person = models.ForeignKey(User, limit_choices_to={'role': 'delivery'},on_delete=models.CASCADE)
     # Choices are already declared in Order Model
-    status = m.CharField(choices=Order.STATUS_CHOICES)
-    shipped_at = m.DateTimeField(null=True, blank=True)
-    delivered_at = m.DateTimeField(null=True, blank=True)
+    status = models.CharField(choices=Order.STATUS_CHOICES)
+    shipped_at = models.DateTimeField(null=True, blank=True)
+    delivered_at = models.DateTimeField(null=True, blank=True)
 
-class Notification(m.Model):
-    user = m.ForeignKey(User, on_delete=m.CASCADE)
-    message = m.TextField()
-    seen = m.BooleanField(default=False)
-    created_at = m.DateTimeField(auto_now_add=True)
+class Notification(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    message = models.TextField()
+    seen = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)

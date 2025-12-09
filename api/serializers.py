@@ -1,30 +1,6 @@
 from rest_framework import serializers as s
 from .models import *
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
-class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
-    @classmethod
-    def get_token(cls, user):
-        token = super().get_token(user)
-
-        # Add custom claims - include user role in token
-        token['username'] = user.username
-        token['role'] = user.role
-        token['email'] = user.email
-
-        return token
-
-    def validate(self, attrs):
-        data = super().validate(attrs)
-        
-        # Add extra responses
-        data['user'] = {
-            'id': self.user.id,
-            'username': self.user.username,
-            'email': self.user.email,
-            'role': self.user.role,
-        }
-        return data
 
 # User serializer for API responses
 class UserSerializer(s.ModelSerializer):
