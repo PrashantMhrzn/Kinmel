@@ -62,58 +62,6 @@ class Cart(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
 
-    # Each time an item is added to this cart, we take its price and add it to the total 
-    # so that we have a total price of all items in the cart
-    def update_total_price(self):
-        total = 0
-        for item in self.cart_items.all():
-            if item.product and item.quantity:
-                total += item.product.price * item.quantity
-                
-        self.total_price = total
-        self.save(update_fields=['total_price'])
-        
-    def checkout(self):
-        # We import order and orderitem here because we need it for the checkout funtion
-        # We cannot import it at the top because those models haven't been declared yet
-        # This method only runs when called and not on load so by then all models are loaded
-        from .models import Order, OrderItem 
-
-        if self.cart_items.count() == 0:
-            raise ValueError("Cannot checkout: Cart is empty")
-
-        # Create our order 
-        order = Order.objects.create(
-            customer=self.user,
-            status='pending',
-            total_price=self.total_price
-        )
-        
-        # Create order items from cart items
-        for item in self.cart_items.all():
-            OrderItem.objects.create(
-                order=order,
-                product=item.product,
-                quantity=item.quantity,
-                purchase_price=item.product.price
-            )
-            
-        # Create notification for the customer
-        Notification.objects.create(
-        user=self.user,
-        message=f"Your order #{order.id} has been confirmed! Total: ${self.total_price}",
-        seen=False
-        )
-        
-        # Clear the cart
-        self.cart_items.all().delete()
-        self.total_price = 0
-        self.save()
-
-        return order
-
-    def __str__(self):
-        return self.user.username
 
 # Each item in a cart
 class CartItem(models.Model):
@@ -122,22 +70,9 @@ class CartItem(models.Model):
     cart = models.ForeignKey('Cart', on_delete=models.CASCADE, related_name='cart_items')
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField(default=1)
-
-    # Modifying the save function so that when a item is saved, it also updates the cart's 
-    # total price
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        self.cart.update_total_price()
-
-    # Before deleting an item, save reference and updated cart total afterwards
-    def delete(self, *args, **kwargs):
-        cart = self.cart
-        super().delete(*args, **kwargs)
-        cart.update_total_price()
-    
-    # To stop duplicate items in the same cart
     class Meta:
         unique_together = ('cart', 'product')
+
 
 
 class Order(models.Model):

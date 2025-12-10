@@ -1,98 +1,95 @@
-from rest_framework import serializers as s
+from rest_framework import serializers
 from .models import *
 
 
 # User serializer for API responses
-class UserSerializer(s.ModelSerializer):
+class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'username', 'email', 'role', 'phone', 'address']
         
-class SellerInventorySerializer(s.ModelSerializer):
-    product = s.SlugRelatedField(slug_field='name', read_only=True)
-    seller = s.CharField(source='seller.username', read_only=True)
+class SellerInventorySerializer(serializers.ModelSerializer):
+    product = serializers.SlugRelatedField(slug_field='name', read_only=True)
+    seller = serializers.CharField(source='seller.username', read_only=True)
 
     class Meta:
         model = SellerInventory 
         exclude = ['profile']
 
-class SellerProfileSerializer(s.ModelSerializer):
-    # We don't want to change the seller so we use charfield
-    user = s.CharField(source='user.username', read_only=True)
-    # Since seller profile and seller inventory aren't directly related
-    # We have to manually define how inventory is calculated or displayed
-    inventory = s.SerializerMethodField() # Look for a method get_inventory to get the value to display
+class SellerProfileSerializer(serializers.ModelSerializer):
+    user = serializers.CharField(source='user.username', read_only=True)
+    inventory = serializers.SerializerMethodField()
 
     class Meta:
         model = SellerProfile
         fields = ['id', 'user', 'company_name', 'verified', 'inventory']
 
     def get_inventory(self, obj):
-        # Fetch inventory of the same seller
-        return SellerInventorySerializer(SellerInventory.objects.filter(seller=obj.user), many=True).data
+        return SellerInventorySerializer(
+            SellerInventory.objects.filter(seller=obj.user), 
+            many=True
+        ).data
 
-class CategorySerializer(s.ModelSerializer):
+class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ['id', 'name', 'description']
 
-class ProductSerializer(s.ModelSerializer):
-    posted_at = s.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
-    category = s.SlugRelatedField(slug_field='name', queryset=Category.objects.all())
+class ProductSerializer(serializers.ModelSerializer):
+    posted_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
+    category = serializers.SlugRelatedField(slug_field='name', queryset=Category.objects.all())
+    
     class Meta:
         model = Product
         fields = ['id', 'name', 'description', 'price', 'category', 'seller', 'posted_at', 'image_url']
 
-class CartItemSerializer(s.ModelSerializer):
-    product = s.SlugRelatedField(slug_field='name', queryset=Product.objects.all())
+class CartItemSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source='product.name', read_only=True)
+    product_price = serializers.DecimalField(source='product.price', read_only=True, max_digits=10, decimal_places=2)
+    
     class Meta:
         model = CartItem
-        fields = ['product', 'quantity']
+        fields = ['id', 'product', 'product_name', 'product_price', 'quantity']
 
-class CartSerializer(s.ModelSerializer):
+class CartSerializer(serializers.ModelSerializer):
     cart_items = CartItemSerializer(many=True, read_only=True)
-    user = s.CharField(source='user.username', read_only=True)
-    total_price = s.DecimalField(max_digits=10, decimal_places=2, read_only=True)
-    created_at = s.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
-    updated_at = s.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
+    
     class Meta:
         model = Cart
-        fields = ['id', 'user', 'created_at', 'updated_at', 'total_price', 'cart_items']
+        fields = ['id', 'user', 'total_price', 'created_at', 'cart_items']
 
-# class CartItemSerializer(s.ModelSerializer):
-#     class Meta:
-#         model = CartItem
-class OrderItemSerializer(s.ModelSerializer):
-    product = s.SlugRelatedField(slug_field='name', queryset=Product.objects.all())
+class AddToCartSerializer(serializers.Serializer):
+    product_id = serializers.IntegerField()
+    quantity = serializers.IntegerField(min_value=1, default=1)
+
+class OrderItemSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source='product.name', read_only=True)
+    
     class Meta:
         model = OrderItem
-        fields = ['id', 'product', 'quantity', 'purchase_price']
+        fields = ['id', 'product', 'product_name', 'quantity', 'purchase_price']
 
-class OrderSerializer(s.ModelSerializer):
+class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
-    customer = s.CharField(source='customer.username', read_only=True)
-    # Display the time in a readable format
-    created_at = s.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
-    updated_at = s.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
+    customer_name = serializers.CharField(source='customer.username', read_only=True)
+    
     class Meta:
         model = Order
-        fields = ['id', 'customer', 'total_price','status' ,'created_at', 'updated_at', 'items' ]
+        fields = ['id', 'customer', 'customer_name', 'total_price', 'status', 'created_at', 'items']
 
-class DeliverySerializer(s.ModelSerializer):
-    delivery_person = s.SlugRelatedField(slug_field='username', queryset=User.objects.all())
-    shipped_at = s.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
-    delivered_at = s.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
+class DeliverySerializer(serializers.ModelSerializer):
+    delivery_person = serializers.SlugRelatedField(slug_field='username', queryset=User.objects.all())
+    shipped_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
+    delivered_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
+    
     class Meta:
         model = Delivery
-        fields = ['id', 'order', 'delivery_person','status' ,'shipped_at', 'delivered_at' ]
+        fields = ['id', 'order', 'delivery_person', 'status', 'shipped_at', 'delivered_at']
 
-class NotificationSerializer(s.ModelSerializer):
-    created_at = s.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
-    user = s.SlugRelatedField(slug_field='username', queryset=User.objects.all())
+class NotificationSerializer(serializers.ModelSerializer):
+    created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
+    user = serializers.SlugRelatedField(slug_field='username', queryset=User.objects.all())
+    
     class Meta:
         model = Notification
-        fields = ['id', 'user', 'message','seen' ,'created_at' ]
-
-
-
-
+        fields = ['id', 'user', 'message', 'seen', 'created_at']
