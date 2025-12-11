@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework import viewsets, status
 from .permissions import *
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAuthenticatedOrReadOnly
+from django.db import transaction
 
 
 class SellerProfileView(ModelViewSet):
@@ -43,64 +44,87 @@ class SellerInventoryView(ModelViewSet):
 
 class CartView(ModelViewSet):
     queryset = Cart.objects.all()
-    def get_queryset(self):
-        user = self.request.user
-        # Admins can see all carts
-        if user.is_staff:
-            return Cart.objects.all()
-
-        # Customers can only see their own cart
-        return Cart.objects.filter(user=user)
     serializer_class = CartSerializer
-    permission_classes = [IsAuthenticated, CartOwnerPermission]
+    permission_classes = [IsAuthenticated, IsCustomer]
 
-    # This creates a custom endpoint orders/checkout/
-    @action(detail=False, methods=['post'], url_path='checkout', url_name='checkout')
+    # /api/cart/checkout
+    @action(detail=False, methods=['post'], url_path='checkout')
     def checkout(self, request):
-        user = request.user
-        
-        # Verify user is a customer
-        if user.role != 'customer':
-            return Response(
-                {"error": "Only customers can checkout"},
-                status=status.HTTP_403_FORBIDDEN
-            )
-        
+        """Checkout cart and create order"""
         try:
-            cart = Cart.objects.get(user=user)
-        except Cart.DoesNotExist:
-            return Response(
-                {"error": "Cart not found"},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        
-        try:
-            order = cart.checkout()
-            serializer = OrderSerializer(order)
-            # Get the latest notification for this order
-            notification = Notification.objects.filter(
-                user=user,
-                message__contains=f"order #{order.id}"
-            ).first()
-            
-            serializer = OrderSerializer(order)
-            notification_serializer = NotificationSerializer(notification) if notification else None
-            
-            return Response(
-                {
-                    "message": "Checkout successful!",
-                    "order": serializer.data,
-                    "notification": notification_serializer.data if notification else None
-                },
-                status=status.HTTP_201_CREATED
-            )
-        except ValueError as e:
-            return Response(
-                {"error": str(e)},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-    
+            with transaction.atomic():
+                # 1. get users Cart
+                cart = Cart.objects.get(user=request.user)
+                # 2. get each item from the cart
+                cart_items = cart.cart_items.select_related('product').all()
+                # 3. validate cart items
+                # check if there are items in the cart
+                if not cart_items.exists():
+                    return Response({"error": "Cart is empty"})
+                
+                # check if the stock is available
+                total_amount = 0
+                inventory_dict = {}
+                
+                for item in cart_items:
+                    try:
+                        inventory = SellerInventory.objects.get(seller=item.product.seller, product=item.product)
+                        inventory_dict[item.product.id] = inventory
+                    except SellerInventory.DoesNotExist:
+                        return Response({"error": f"{item.product.name} is no longer available in inventory"})
+                    
+                    if not item.product.is_available:
+                        return Response({"error": f"{item.product.name} is no longer available"})
+                    
+                    if inventory.stock_quantity < item.quantity:
+                        return Response({"error": f"Not enough stock for {item.product.name} stock left {inventory.stock_quantity}"})
+                    
+                    # calculate the total amount from the products
+                    total_amount += item.product.price * item.quantity
 
+                # 4. create the order
+                order = Order.objects.create(
+                    customer = request.user,
+                    total_price = total_amount,
+                    status = 'pending',
+                )
+                # 5. convert cart items into orderitems
+                for cart_item in cart_items:
+                    inventory = inventory_dict[cart_item.product.id]
+                    
+                    OrderItem.objects.create(
+                        order = order,
+                        product = cart_item.product,
+                        quantity = cart_item.quantity,
+                        purchase_price = cart_item.product.price
+                    )
+
+                    # Update seller inventory stock
+                    inventory.stock_quantity -= cart_item.quantity
+                    inventory.save()
+                    
+                    # If stock reaches 0, mark product as unavailable
+                    if inventory.stock_quantity == 0:
+                        cart_item.product.is_available = False
+                        cart_item.product.save()
+                
+                # 6. Clear the cart after successful checkout
+                cart.cart_items.all().delete()
+                cart.total_price = 0.00
+                cart.save()
+                
+                # Return success response with order details
+                return Response({
+                    "message": "Checkout successful",
+                    "order_id": order.id,
+                    "total_amount": total_amount
+                })
+
+        except Cart.DoesNotExist:
+            return Response({"error": "Cart not found"})
+        except  Exception as e:
+            return Response({"error": f"Checkout failed: {str(e)}"})
+    
 class OrderView(ModelViewSet):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer

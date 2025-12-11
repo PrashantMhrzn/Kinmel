@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from .utils import generate_random_code
 
 # Custom user for Role based use
 class User(AbstractUser):
@@ -39,6 +40,7 @@ class Product(models.Model):
     seller = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'role': 'seller'})
     posted_at = models.DateTimeField(auto_now_add=True)
     image_url = models.URLField(blank=True, default='')
+    is_available = models.BooleanField(default=True, blank=False, null=False)
     
     def __str__(self):
         return self.name
@@ -61,7 +63,7 @@ class Cart(models.Model):
     # Ideal for updated_at or last_modified fields.
     updated_at = models.DateTimeField(auto_now=True)
     total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
-
+    cart_code = models.CharField(max_length=6, unique=True, default=generate_random_code)
 
 # Each item in a cart
 class CartItem(models.Model):
@@ -72,8 +74,6 @@ class CartItem(models.Model):
     quantity = models.PositiveIntegerField(default=1)
     class Meta:
         unique_together = ('cart', 'product')
-
-
 
 class Order(models.Model):
     STATUS_CHOICES = (
@@ -88,6 +88,7 @@ class Order(models.Model):
     status = models.CharField(choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    order_code = models.CharField(max_length=6, unique=True, default=generate_random_code)
 
     def __str__(self):
         return f"Order #{self.pk} by {self.customer.username}"

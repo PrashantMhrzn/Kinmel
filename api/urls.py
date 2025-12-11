@@ -15,5 +15,5 @@ router.register(r'notification', NotificationView)
 
 urlpatterns = [
     # path('/', ),
-    # path('', include(router.urls)),
-] + router.urls
+    path('', include(router.urls)),
+]
