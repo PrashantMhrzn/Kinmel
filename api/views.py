@@ -124,6 +124,98 @@ class CartView(ModelViewSet):
             return Response({"error": "Cart not found"})
         except  Exception as e:
             return Response({"error": f"Checkout failed: {str(e)}"})
+        
+    @action(detail=False, methods=['post'], url_path='add-to-cart')
+    def add_to_cart(self, request):
+        """
+        Add product to cart using product unique_code
+        POST /api/cart/add-to-cart/
+        {
+            "product_code": "ABC123",
+            "quantity": 2
+        }
+        """
+        serializer = AddToCartSerializer(data=request.data)
+
+        if not serializer.is_valid():
+            return Response(serializer.errors)
+        
+        product_code = serializer.validated_data['product_code']
+        quantity = serializer.validated_data['quantity']
+
+        try:
+            with transaction.atomic():
+                product = Product.objects.get(unique_code=product_code)
+                
+                # Check if user has cart, if not create a cart for user
+                try:
+                    cart = Cart.objects.get(user=request.user)
+                except Cart.DoesNotExist:
+                    cart = Cart.objects.create(user=request.user)
+
+                # Check if product is available
+                if not product.is_available:
+                    return Response({"error": f"{product.name} is not available"})
+                
+                # Check inventory stock
+                try:
+                    inventory = SellerInventory.objects.get(
+                        seller=product.seller,
+                        product=product
+                    )
+                    if inventory.stock_quantity < quantity:
+                        return Response({
+                            "error": f"{product.name} only has {inventory.stock_quantity} pieces left"
+                        }, status=400)
+                except SellerInventory.DoesNotExist:
+                    return Response({
+                        "error": f"{product.name} is not available in inventory"
+                    }, status=400)
+                
+                # Check if product is already in cart
+                cart_item = CartItem.objects.filter(cart=cart, product=product).first()
+                
+                if cart_item:
+                    # Check total quantity after update
+                    if inventory.stock_quantity < (cart_item.quantity + quantity):
+                        return Response({
+                            "error": f"Cannot add {quantity} more. {product.name} only has {inventory.stock_quantity} pieces left"
+                        })
+                    
+                    # Update the quantity
+                    cart_item.quantity += quantity
+                    cart_item.save()
+                    message = "Updated cart item quantity"
+                else:
+                    # Create new if doesn't exist
+                    cart_item = CartItem.objects.create(
+                        cart=cart, 
+                        product=product, 
+                        quantity=quantity
+                    )
+                    message = "Added to cart successfully"
+                
+                # Update cart total price
+                cart.total_price += (product.price * quantity)
+                cart.save()
+                
+                return Response({
+                    "success": True,
+                    "message": message,
+                    "cart_item_id": cart_item.id,
+                    "product": product.name,
+                    "product_code": product.unique_code,
+                    "quantity": cart_item.quantity,
+                    "price_per_item": str(product.price),
+                    "total_for_item": str(product.price * cart_item.quantity),
+                    "total_in_cart": cart.cart_items.count(),
+                    "cart_total": str(cart.total_price)
+                })
+
+        except Product.DoesNotExist:
+            return Response({"error": f"Product with code '{product_code}' does not exist"})
+        except Exception as e:
+            return Response({"error": f"Failed to add to cart: {str(e)}"})
     
 class OrderView(ModelViewSet):
     queryset = Order.objects.all()

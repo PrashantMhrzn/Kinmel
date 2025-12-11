@@ -41,7 +41,7 @@ class ProductSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Product
-        fields = ['id', 'name', 'description', 'price', 'category', 'seller', 'posted_at', 'image_url']
+        fields = ['id', 'name', 'description', 'price', 'category', 'seller', 'posted_at', 'image_url', 'product_code']
 
 class CartItemSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source='product.name', read_only=True)
@@ -56,11 +56,7 @@ class CartSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Cart
-        fields = ['id', 'user', 'total_price', 'created_at', 'cart_items']
-
-class AddToCartSerializer(serializers.Serializer):
-    product_id = serializers.IntegerField()
-    quantity = serializers.IntegerField(min_value=1, default=1)
+        fields = ['id', 'user', 'total_price', 'created_at', 'cart_items', 'cart_code']
 
 class OrderItemSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source='product.name', read_only=True)
@@ -75,7 +71,7 @@ class OrderSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Order
-        fields = ['id', 'customer', 'customer_name', 'total_price', 'status', 'created_at', 'items']
+        fields = ['id', 'customer', 'customer_name', 'total_price', 'status', 'created_at', 'items', 'order_code']
 
 class DeliverySerializer(serializers.ModelSerializer):
     delivery_person = serializers.SlugRelatedField(slug_field='username', queryset=User.objects.all())
@@ -93,3 +89,7 @@ class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
         fields = ['id', 'user', 'message', 'seen', 'created_at']
+
+class AddToCartSerializer(serializers.Serializer):
+    product_code = serializers.CharField(max_length=6) 
+    quantity = serializers.IntegerField(min_value=1, default=1)

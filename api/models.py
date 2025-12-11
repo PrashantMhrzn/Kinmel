@@ -41,6 +41,7 @@ class Product(models.Model):
     posted_at = models.DateTimeField(auto_now_add=True)
     image_url = models.URLField(blank=True, default='')
     is_available = models.BooleanField(default=True, blank=False, null=False)
+    product_code = models.CharField(max_length=6, unique=True, default=generate_random_code)
     
     def __str__(self):
         return self.name
