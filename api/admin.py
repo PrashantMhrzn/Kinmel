@@ -33,15 +33,11 @@ class UserAdmin(UA):
 
 admin.site.register(User, UserAdmin)
 
-class SellerInventoryInline(admin.TabularInline):
-    model = SellerInventory
-    extra = 1
 
 class SellerProfileAdmin(admin.ModelAdmin):
     search_fields = ('user__username', 'company_name', 'verified')
     list_display = ('user', 'company_name', 'verified')
     list_filter = ('user__username', 'verified')
-    inlines = [SellerInventoryInline]
     list_per_page = 15
     list_editable = ('verified',)
 
@@ -56,20 +52,32 @@ class CategoryAdmin(admin.ModelAdmin):
 admin.site.register(Category, CategoryAdmin)
 
 class ProductAdmin(admin.ModelAdmin):
-    search_fields = ('name', 'price', 'seller__username')
-    list_display = ('name','price', 'seller__username')
-    list_filter = ('name','price', 'seller__username')
-    list_per_page = 15
+    list_display = ['name', 'seller', 'category', 'price', 'quantity', 'is_available', 'product_code']
+    list_filter = ['category', 'is_available', 'seller']
+    search_fields = ['name', 'product_code', 'seller__username']
+    readonly_fields = ['product_code', 'posted_at']
+    
+    fieldsets = (
+        ('Product Info', {
+            'fields': ('name', 'description', 'category', 'product_code')
+        }),
+        ('Pricing & Stock', {
+            'fields': ('price', 'quantity', 'is_available')
+        }),
+        ('Seller Info', {
+            'fields': ('seller',)
+        }),
+        ('Media', {
+            'fields': ('image',)
+        }),
+        ('Timestamps', {
+            'fields': ('posted_at',),
+            'classes': ('collapse',)
+        }),
+    )
 
 admin.site.register(Product, ProductAdmin)
 
-class SellerInventoryAdmin(admin.ModelAdmin):
-    search_fields = ('seller__username', 'product__name')
-    list_display = ('seller__username', 'product__name', 'stock_quantity')
-    list_filter = ('seller__username', 'product__name')
-    list_per_page = 15
-
-admin.site.register(SellerInventory, SellerInventoryAdmin)
 
 class CartItemInline(admin.TabularInline):
     model = CartItem

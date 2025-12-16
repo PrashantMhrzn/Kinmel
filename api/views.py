@@ -8,6 +8,7 @@ from rest_framework import viewsets, status
 from .permissions import *
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAuthenticatedOrReadOnly
 from django.db import transaction
+from rest_framework import generics, parsers
 
 
 class SellerProfileView(ModelViewSet):
@@ -23,24 +24,87 @@ class CategoryView(ModelViewSet):
     search_fields = ['name']
     permission_classes = [ReadOnly | IsAdmin] # Everybdoy can read, only admin can edit
 
-class ProductView(ModelViewSet):
+class ProductView(viewsets.ModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
-    # Filtering data
-    filterset_fields = ['category', 'price'] # Filter with values
-    search_fields = ['name', 'category__name']  # Filter by searching
-    ordering_fields = ['price', 'posted_at'] # Sort the filter
-    permission_classes = [ProductOwnerOrReadOnly]
-
-class SellerInventoryView(ModelViewSet):
-    queryset = SellerInventory.objects.all()
-    serializer_class = SellerInventorySerializer
-    # Filtering
-    filterset_fields = ['product__category', 'stock_quantity']
-    search_fields = ['product__name']
-    ordering_fields = ['stock_quantity']
-    permission_classes = [IsAuthenticated, IsSellerOrReadOnly] # Everybody(excluding unauthorized) can view, but only seller can edit
-
+    parser_classes = [parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser]
+    
+    # Override create to set seller as current user
+    def perform_create(self, serializer):
+        serializer.save(seller=self.request.user)
+    
+    # Override update to ensure only seller can update their own products
+    def update(self, request, *args, **kwargs):
+        product = self.get_object()
+        if product.seller != request.user and not request.user.is_staff:
+            return Response(
+                {"error": "You can only update your own products"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().update(request, *args, **kwargs)
+    
+    # Override destroy to ensure only seller can delete their own products
+    def destroy(self, request, *args, **kwargs):
+        product = self.get_object()
+        if product.seller != request.user and not request.user.is_staff:
+            return Response(
+                {"error": "You can only delete your own products"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().destroy(request, *args, **kwargs)
+    
+    # Filter by seller
+    @action(detail=False, methods=['get'], url_path='my-products')
+    def my_products(self, request):
+        if request.user.role != 'seller':
+            return Response(
+                {"error": "Only sellers can view their products"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        products = Product.objects.filter(seller=request.user)
+        serializer = self.get_serializer(products, many=True)
+        return Response(serializer.data)
+    
+    # Update stock
+    @action(detail=True, methods=['patch'], url_path='update-stock')
+    def update_stock(self, request, pk=None):
+        product = self.get_object()
+        
+        # Check permission
+        if product.seller != request.user and not request.user.is_staff:
+            return Response(
+                {"error": "You can only update stock for your own products"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        quantity = request.data.get('quantity')
+        if quantity is None:
+            return Response(
+                {"error": "Quantity is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            quantity = int(quantity)
+            if quantity < 0:
+                raise ValueError
+        except (ValueError, TypeError):
+            return Response(
+                {"error": "Quantity must be a positive integer"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        product.quantity = quantity
+        product.save()
+        
+        return Response({
+            "success": True,
+            "message": f"Stock updated to {quantity}",
+            "product": product.name,
+            "quantity": product.quantity,
+            "stock_status": product.stock_status
+        })
 
 class CartView(ModelViewSet):
     queryset = Cart.objects.all()
@@ -53,60 +117,61 @@ class CartView(ModelViewSet):
         """Checkout cart and create order"""
         try:
             with transaction.atomic():
-                # 1. get users Cart
+                # 1. Get user's cart
                 cart = Cart.objects.get(user=request.user)
-                # 2. get each item from the cart
+                # 2. Get each item from the cart
                 cart_items = cart.cart_items.select_related('product').all()
-                # 3. validate cart items
-                # check if there are items in the cart
-                if not cart_items.exists():
-                    return Response({"error": "Cart is empty"})
                 
-                # check if the stock is available
+                # 3. Validate cart items
+                if not cart_items.exists():
+                    return Response({"error": "Cart is empty"}, status=400)
+                
+                # Check if all products are available and in stock
                 total_amount = 0
-                inventory_dict = {}
+                errors = []
                 
                 for item in cart_items:
-                    try:
-                        inventory = SellerInventory.objects.get(seller=item.product.seller, product=item.product)
-                        inventory_dict[item.product.id] = inventory
-                    except SellerInventory.DoesNotExist:
-                        return Response({"error": f"{item.product.name} is no longer available in inventory"})
-                    
+                    # Check product availability
                     if not item.product.is_available:
-                        return Response({"error": f"{item.product.name} is no longer available"})
+                        errors.append(f"{item.product.name} is no longer available")
+                        continue
                     
-                    if inventory.stock_quantity < item.quantity:
-                        return Response({"error": f"Not enough stock for {item.product.name} stock left {inventory.stock_quantity}"})
+                    # Check stock quantity
+                    if item.product.quantity < item.quantity:
+                        errors.append(f"Not enough stock for {item.product.name}. Only {item.product.quantity} left")
+                        continue
                     
-                    # calculate the total amount from the products
+                    # Calculate total amount
                     total_amount += item.product.price * item.quantity
-
-                # 4. create the order
+                
+                # If any errors, return them
+                if errors:
+                    return Response({"errors": errors}, status=400)
+                
+                # 4. Create the order
                 order = Order.objects.create(
-                    customer = request.user,
-                    total_price = total_amount,
-                    status = 'pending',
+                    customer=request.user,
+                    total_price=total_amount,
+                    status='pending',
                 )
-                # 5. convert cart items into orderitems
+                
+                # 5. Convert cart items into order items and update product quantities
                 for cart_item in cart_items:
-                    inventory = inventory_dict[cart_item.product.id]
-                    
                     OrderItem.objects.create(
-                        order = order,
-                        product = cart_item.product,
-                        quantity = cart_item.quantity,
-                        purchase_price = cart_item.product.price
+                        order=order,
+                        product=cart_item.product,
+                        quantity=cart_item.quantity,
+                        purchase_price=cart_item.product.price
                     )
 
-                    # Update seller inventory stock
-                    inventory.stock_quantity -= cart_item.quantity
-                    inventory.save()
+                    # UPDATE: Reduce product quantity directly (no SellerInventory)
+                    cart_item.product.quantity -= cart_item.quantity
                     
                     # If stock reaches 0, mark product as unavailable
-                    if inventory.stock_quantity == 0:
+                    if cart_item.product.quantity == 0:
                         cart_item.product.is_available = False
-                        cart_item.product.save()
+                    
+                    cart_item.product.save()
                 
                 # 6. Clear the cart after successful checkout
                 cart.cart_items.all().delete()
@@ -115,88 +180,103 @@ class CartView(ModelViewSet):
                 
                 # Return success response with order details
                 return Response({
+                    "success": True,
                     "message": "Checkout successful",
                     "order_id": order.id,
-                    "total_amount": total_amount
+                    "order_code": order.order_code,
+                    "total_amount": str(total_amount),
+                    "status": order.status
                 })
 
         except Cart.DoesNotExist:
-            return Response({"error": "Cart not found"})
-        except  Exception as e:
-            return Response({"error": f"Checkout failed: {str(e)}"})
+            return Response({"error": "Cart not found"}, status=404)
+        except Exception as e:
+            return Response({"error": f"Checkout failed: {str(e)}"}, status=500)
         
+    # Add cart action
     @action(detail=False, methods=['post'], url_path='add-to-cart')
     def add_to_cart(self, request):
         """
-        Add product to cart using product unique_code
+        Add product to cart using product_code
+        
         POST /api/cart/add-to-cart/
+        
+        Request Body:
         {
-            "product_code": "ABC123",
-            "quantity": 2
-        }
-        """
+            "product_code": "ABC123", 
+            "quantity": 2            
+        }"""
         serializer = AddToCartSerializer(data=request.data)
-
+        
         if not serializer.is_valid():
-            return Response(serializer.errors)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
         product_code = serializer.validated_data['product_code']
         quantity = serializer.validated_data['quantity']
-
+        
         try:
             with transaction.atomic():
-                product = Product.objects.get(unique_code=product_code)
-                
-                # Check if user has cart, if not create a cart for user
+                # Get product
                 try:
-                    cart = Cart.objects.get(user=request.user)
-                except Cart.DoesNotExist:
-                    cart = Cart.objects.create(user=request.user)
-
-                # Check if product is available
+                    product = Product.objects.get(product_code=product_code)
+                except Product.DoesNotExist:
+                    return Response(
+                        {"error": f"Product with code '{product_code}' does not exist"},
+                        status=status.HTTP_404_NOT_FOUND
+                    )
+                
+                # Check availability
                 if not product.is_available:
-                    return Response({"error": f"{product.name} is not available"})
-                
-                # Check inventory stock
-                try:
-                    inventory = SellerInventory.objects.get(
-                        seller=product.seller,
-                        product=product
+                    return Response(
+                        {"error": f"{product.name} is not available"},
+                        status=status.HTTP_400_BAD_REQUEST
                     )
-                    if inventory.stock_quantity < quantity:
-                        return Response({
-                            "error": f"{product.name} only has {inventory.stock_quantity} pieces left"
-                        }, status=400)
-                except SellerInventory.DoesNotExist:
-                    return Response({
-                        "error": f"{product.name} is not available in inventory"
-                    }, status=400)
                 
-                # Check if product is already in cart
-                cart_item = CartItem.objects.filter(cart=cart, product=product).first()
+                # Check stock
+                if product.quantity < quantity:
+                    return Response(
+                        {"error": f"{product.name} only has {product.quantity} pieces left"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
                 
-                if cart_item:
-                    # Check total quantity after update
-                    if inventory.stock_quantity < (cart_item.quantity + quantity):
-                        return Response({
-                            "error": f"Cannot add {quantity} more. {product.name} only has {inventory.stock_quantity} pieces left"
-                        })
+                # Get or create cart
+                cart, created = Cart.objects.get_or_create(
+                    user=request.user,
+                    defaults={'cart_code': generate_random_code()}
+                )
+                
+                if created:
+                    cart.total_price = 0.00
+                    cart.save()
+                
+                # Check if product already in cart
+                cart_item, item_created = CartItem.objects.get_or_create(
+                    cart=cart,
+                    product=product,
+                    defaults={'quantity': quantity}
+                )
+                
+                if not item_created:
+                    # Update existing cart item
+                    new_quantity = cart_item.quantity + quantity
                     
-                    # Update the quantity
-                    cart_item.quantity += quantity
+                    # Check if new quantity exceeds stock
+                    if product.quantity < new_quantity:
+                        return Response(
+                            {"error": f"Cannot add {quantity} more. {product.name} only has {product.quantity} pieces left"},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                    
+                    cart_item.quantity = new_quantity
                     cart_item.save()
-                    message = "Updated cart item quantity"
+                    message = "Cart item quantity updated"
                 else:
-                    # Create new if doesn't exist
-                    cart_item = CartItem.objects.create(
-                        cart=cart, 
-                        product=product, 
-                        quantity=quantity
-                    )
-                    message = "Added to cart successfully"
+                    message = "Product added to cart"
                 
-                # Update cart total price
-                cart.total_price += (product.price * quantity)
+                # Update cart total
+                cart_items = CartItem.objects.filter(cart=cart)
+                total = sum(item.product.price * item.quantity for item in cart_items)
+                cart.total_price = total
                 cart.save()
                 
                 return Response({
@@ -204,19 +284,160 @@ class CartView(ModelViewSet):
                     "message": message,
                     "cart_item_id": cart_item.id,
                     "product": product.name,
-                    "product_code": product.unique_code,
+                    "product_code": product.product_code,
                     "quantity": cart_item.quantity,
                     "price_per_item": str(product.price),
                     "total_for_item": str(product.price * cart_item.quantity),
-                    "total_in_cart": cart.cart_items.count(),
                     "cart_total": str(cart.total_price)
                 })
-
-        except Product.DoesNotExist:
-            return Response({"error": f"Product with code '{product_code}' does not exist"})
+                
         except Exception as e:
-            return Response({"error": f"Failed to add to cart: {str(e)}"})
-    
+            return Response(
+                {"error": f"Failed to add to cart: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+    @action(detail=False, methods=['get'], url_path='my-cart')
+    def my_cart(self, request):
+        """
+        Get current user's cart with all items
+        
+        GET /api/cart/my-cart/
+        """
+        try:
+            cart = Cart.objects.get(user=request.user)
+            serializer = self.get_serializer(cart)
+            return Response(serializer.data)
+        except Cart.DoesNotExist:
+            # Return empty cart if doesn't exist
+            return Response({
+                "user": request.user.id,
+                "cart_items": [],
+                "total_price": "0.00",
+                "item_count": 0
+            })
+
+    @action(detail=False, methods=['post'], url_path='update-item')
+    def update_cart_item(self, request):
+        """
+        Update quantity of a specific cart item
+        
+        POST /api/cart/update-item/
+        
+        Request Body:
+        {
+            "item_id": 1,           # CartItem ID
+            "quantity": 3           # New quantity
+        }"""
+        serializer = UpdateCartItemSerializer(data=request.data)
+        
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+        
+        item_id = serializer.validated_data['item_id']
+        quantity = serializer.validated_data['quantity']
+        
+        try:
+            with transaction.atomic():
+                cart_item = CartItem.objects.get(id=item_id, cart__user=request.user)
+                
+                # Check if product is still available
+                if not cart_item.product.is_available:
+                    return Response({
+                        "error": f"{cart_item.product.name} is no longer available"
+                    }, status=400)
+                
+                # Check stock
+                if cart_item.product.quantity < quantity:
+                    return Response({
+                        "error": f"Cannot update to {quantity}. {cart_item.product.name} only has {cart_item.product.quantity} left"
+                    }, status=400)
+                
+                # Calculate price difference
+                price_diff = (quantity - cart_item.quantity) * cart_item.product.price
+                
+                # Update cart item
+                cart_item.quantity = quantity
+                cart_item.save()
+                
+                # Update cart total
+                cart = cart_item.cart
+                cart.total_price += price_diff
+                cart.save()
+                
+                return Response({
+                    "success": True,
+                    "message": "Cart item updated",
+                    "quantity": cart_item.quantity,
+                    "total_for_item": str(cart_item.product.price * cart_item.quantity),
+                    "cart_total": str(cart.total_price)
+                })
+                
+        except CartItem.DoesNotExist:
+            return Response({"error": "Cart item not found"}, status=404)
+        except Exception as e:
+            return Response({"error": f"Failed to update cart: {str(e)}"}, status=500)
+
+    @action(detail=False, methods=['delete'], url_path='remove-item/(?P<item_id>[^/.]+)')
+    def remove_cart_item(self, request, item_id=None):
+        """
+        Remove specific item from cart
+        
+        DELETE /api/cart/remove-item/{item_id}/
+        
+        URL Parameter:
+        - item_id: ID of the cart item to remove"""
+        try:
+            with transaction.atomic():
+                cart_item = CartItem.objects.get(id=item_id, cart__user=request.user)
+                cart = cart_item.cart
+                
+                # Calculate price to subtract
+                price_to_subtract = cart_item.product.price * cart_item.quantity
+                
+                # Remove item
+                cart_item.delete()
+                
+                # Update cart total
+                cart.total_price -= price_to_subtract
+                if cart.total_price < 0:
+                    cart.total_price = 0.00
+                cart.save()
+                
+                return Response({
+                    "success": True,
+                    "message": "Item removed from cart",
+                    "cart_total": str(cart.total_price),
+                    "remaining_items": cart.cart_items.count()
+                })
+                
+        except CartItem.DoesNotExist:
+            return Response({"error": "Cart item not found"}, status=404)
+        except Exception as e:
+            return Response({"error": f"Failed to remove item: {str(e)}"}, status=500)
+
+    @action(detail=False, methods=['delete'], url_path='clear')
+    def clear_cart(self, request):
+        """
+        Remove all items from cart
+        
+        DELETE /api/cart/clear/t"""
+        try:
+            cart = Cart.objects.get(user=request.user)
+            cart.cart_items.all().delete()
+            cart.total_price = 0.00
+            cart.save()
+            
+            return Response({
+                "success": True,
+                "message": "Cart cleared successfully"
+            })
+            
+        except Cart.DoesNotExist:
+            return Response({"error": "Cart not found"}, status=404)
+        except Exception as e:
+            return Response({"error": f"Failed to clear cart: {str(e)}"}, status=500)
+        
 class OrderView(ModelViewSet):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer

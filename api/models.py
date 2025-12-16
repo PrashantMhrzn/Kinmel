@@ -39,21 +39,13 @@ class Product(models.Model):
     # Only users with seller role are able to be displayed as a seller for the product
     seller = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'role': 'seller'})
     posted_at = models.DateTimeField(auto_now_add=True)
-    image_url = models.URLField(blank=True, default='')
+    image = models.ImageField(upload_to='products/', null=True, blank=True)
     is_available = models.BooleanField(default=True, blank=False, null=False)
     product_code = models.CharField(max_length=6, unique=True, default=generate_random_code)
+    quantity = models.PositiveIntegerField(default=0)
     
     def __str__(self):
         return self.name
-
-class SellerInventory(models.Model):
-    seller = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'role': 'seller'})
-    profile = models.ForeignKey(SellerProfile, on_delete=models.CASCADE, related_name='inventory', null=True, blank=True)
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    stock_quantity = models.PositiveIntegerField()
-
-    def __str__(self):
-        return self.seller.username
 
 class Cart(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, limit_choices_to={'role': 'customer'})

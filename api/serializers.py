@@ -8,13 +8,6 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'username', 'email', 'role', 'phone', 'address']
         
-class SellerInventorySerializer(serializers.ModelSerializer):
-    product = serializers.SlugRelatedField(slug_field='name', read_only=True)
-    seller = serializers.CharField(source='seller.username', read_only=True)
-
-    class Meta:
-        model = SellerInventory 
-        exclude = ['profile']
 
 class SellerProfileSerializer(serializers.ModelSerializer):
     user = serializers.CharField(source='user.username', read_only=True)
@@ -24,24 +17,31 @@ class SellerProfileSerializer(serializers.ModelSerializer):
         model = SellerProfile
         fields = ['id', 'user', 'company_name', 'verified', 'inventory']
 
-    def get_inventory(self, obj):
-        return SellerInventorySerializer(
-            SellerInventory.objects.filter(seller=obj.user), 
-            many=True
-        ).data
-
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ['id', 'name', 'description']
 
 class ProductSerializer(serializers.ModelSerializer):
-    posted_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
-    category = serializers.SlugRelatedField(slug_field='name', queryset=Category.objects.all())
+    seller_name = serializers.CharField(source='seller.username', read_only=True)
+    category_name = serializers.CharField(source='category.name', read_only=True)
     
+    # Remove in_stock and stock_status if you don't need them
     class Meta:
         model = Product
-        fields = ['id', 'name', 'description', 'price', 'category', 'seller', 'posted_at', 'image_url', 'product_code']
+        fields = [
+            'id', 'name', 'description', 'price', 'quantity',
+            'category', 'category_name', 'seller', 'seller_name',
+            'image', 'is_available', 'product_code', 'posted_at'
+            # Removed: 'stock_status', 'in_stock'
+        ]
+        read_only_fields = ['seller', 'product_code', 'posted_at']
+    
+    def validate_quantity(self, value):
+        if value < 0:
+            raise serializers.ValidationError("Quantity cannot be negative")
+        return value
+
 
 class CartItemSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source='product.name', read_only=True)
@@ -91,5 +91,44 @@ class NotificationSerializer(serializers.ModelSerializer):
         fields = ['id', 'user', 'message', 'seen', 'created_at']
 
 class AddToCartSerializer(serializers.Serializer):
-    product_code = serializers.CharField(max_length=6) 
-    quantity = serializers.IntegerField(min_value=1, default=1)
+    product_code = serializers.CharField(max_length=6)
+    quantity = serializers.IntegerField(min_value=1)
+    
+    def validate_quantity(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Quantity must be greater than 0")
+        return value
+    
+class UpdateCartItemSerializer(serializers.Serializer):
+    item_id = serializers.IntegerField(min_value=1)
+    quantity = serializers.IntegerField(min_value=1, max_value=100)
+    
+    def validate_quantity(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Quantity must be greater than 0")
+        return value
+
+class CartItemSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source='product.name', read_only=True)
+    product_price = serializers.DecimalField(source='product.price', max_digits=10, decimal_places=2, read_only=True)
+    product_code = serializers.CharField(source='product.product_code', read_only=True)
+    total_price = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = CartItem
+        fields = ['id', 'product', 'product_name', 'product_code', 'product_price', 'quantity', 'total_price']
+    
+    def get_total_price(self, obj):
+        return obj.product.price * obj.quantity
+
+class CartSerializer(serializers.ModelSerializer):
+    cart_items = CartItemSerializer(many=True, read_only=True)
+    item_count = serializers.SerializerMethodField()
+    user_name = serializers.CharField(source='user.username', read_only=True)
+    
+    class Meta:
+        model = Cart
+        fields = ['id', 'user', 'user_name', 'cart_items', 'total_price', 'item_count', 'created_at', 'updated_at']
+    
+    def get_item_count(self, obj):
+        return obj.cart_items.count()
