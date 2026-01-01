@@ -4,7 +4,7 @@
 
 Kinmel is an e-commerce API built with Django REST Framework. It provides a scalable backend solution for managing products, categories, sellers, customers, carts, orders, deliveries, and notifications. The system supports role-based authentication (Admin, Seller, Customer, Delivery) and enforces permissions to ensure secure data handling.  
 
-With integrated features like order tracking, inventory management, and email notifications, Kinmel serves as a robust foundation for any online marketplace platform.  
+With integrated features like order tracking, inventory management, and email notifications, Kinmel serves as a robust foundation for any online marketplace platform.
 
 ---
 
