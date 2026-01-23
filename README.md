@@ -50,7 +50,7 @@ With integrated features like order tracking, inventory management, and email no
 - PostgreSQL or SQLite for testing
 - `pip`
 
-### Installation
+### Installation 
 
 ```bash
 # Clone the repo
